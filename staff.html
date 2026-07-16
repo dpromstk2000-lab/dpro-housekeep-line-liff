@@ -83,7 +83,7 @@
   const C = window.DPRO_HOUSEKEEP_CONFIG || {};
   const API = C.API_BASE || 'https://dpro-housekeep-line-api.dpromstk2000.workers.dev';
   const COMPANY = C.COMPANY_CODE || 'dpro_housekeep_demo';
-  const VERSION = 'HOUSEKEEP-6-R4-STAFF-DETAIL-STABLE-20260717';
+  const VERSION = 'HOUSEKEEP-6-R5-STAFF-AUTH-RETRY-20260717';
   const DEMO_MODE = new URLSearchParams(location.search).get('demo') === '1';
   let demoPrepared = false;
   const $ = id => document.getElementById(id);
@@ -139,13 +139,31 @@
   function clearError(id) { $(id).classList.remove('show'); }
   function toast(message) { $('toast').textContent=message; $('toast').classList.add('show'); clearTimeout(toastTimer); toastTimer=setTimeout(()=>$('toast').classList.remove('show'),2400); }
 
-  async function api(path, options={}) {
+  function activeAdminKey() {
+    const inputKey = $('adminCode')?.value?.trim() || '';
+    const storedKey = sessionStorage.getItem('dpro_housekeep_admin_key') || '';
+    const key = adminKey || inputKey || storedKey || (DEMO_MODE ? '1234' : '');
+    if (key) adminKey = key;
+    return key;
+  }
+
+  async function api(path, options={}, authRetried=false) {
+    const key = activeAdminKey();
     const url = new URL(API + path);
     url.searchParams.set('company_code', COMPANY);
-    url.searchParams.set('admin_key', adminKey);
+    if (key) url.searchParams.set('admin_key', key);
     const isForm = options.body instanceof FormData;
-    const res = await fetch(url, { ...options, cache:'no-store', headers:{ ...(isForm?{}:{'Content-Type':'application/json'}), ...(options.headers||{}) } });
+    const headers = { ...(isForm?{}:{'Content-Type':'application/json'}), ...(options.headers||{}) };
+    if (key) headers['X-Admin-Key'] = key;
+    const res = await fetch(url, { ...options, cache:'no-store', headers });
     const data = await res.json().catch(() => ({}));
+    const authError = res.status === 401 || data.error === '管理コードが正しくありません';
+    if (authError && DEMO_MODE && !authRetried) {
+      adminKey = '1234';
+      if ($('adminCode')) $('adminCode').value = '1234';
+      sessionStorage.setItem('dpro_housekeep_admin_key', '1234');
+      return api(path, options, true);
+    }
     if (!res.ok || data.ok === false) {
       const error = new Error(data.error || '通信に失敗しました');
       error.status = res.status;
@@ -414,7 +432,17 @@
     document.querySelectorAll('.tab').forEach(b=>b.addEventListener('click',()=>setFilter(b.dataset.filter))); document.querySelectorAll('[data-bottom]').forEach(b=>b.addEventListener('click',()=>setFilter(b.dataset.bottom)));
     $('ensureChecks').addEventListener('click',ensureChecks); $('saveNote').addEventListener('click',saveNote); $('photoType').addEventListener('change',updatePhotoVisibleGuard); $('uploadPhoto').addEventListener('click',uploadPhoto); $('completeBottom').addEventListener('click',()=>updateStatus('completed'));
     $('photoFile').addEventListener('change',()=>{$('fileName').textContent=$('photoFile').files[0]?.name||'JPEG・PNG・WebP／5MBまで'}); updatePhotoVisibleGuard();
-    if(DEMO_MODE){$('adminCode').value='1234';verifyCode().then(list=>{const preferred=list.find(x=>x.staff_code==='ST-002')||list.find(x=>x.role==='staff')||list[0];if(preferred)$('staffSelect').value=preferred.id;enter()}).catch(e=>showError('loginError',e.message));}
+    if(DEMO_MODE){
+      $('adminCode').value='1234'; adminKey='1234'; sessionStorage.setItem('dpro_housekeep_admin_key','1234');
+      verifyCode().then(async list=>{
+        const preferred=list.find(x=>x.staff_code==='ST-002')||list.find(x=>x.role==='staff')||list[0];
+        if(!preferred)throw new Error('デモ用スタッフが見つかりません。');
+        $('staffSelect').value=preferred.id; staff=preferred;
+        localStorage.setItem('dpro_housekeep_staff_id',staff.id);
+        $('brandStaff').textContent=staff.name; $('helloName').textContent=`${staff.name}さんの担当`;
+        $('login').style.display='none'; await loadJobs();
+      }).catch(e=>showError('loginError',e.message));
+    }
   }
   init();
 })();
