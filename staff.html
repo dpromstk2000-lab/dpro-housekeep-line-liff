@@ -57,6 +57,7 @@
   <header class="detail-top"><button id="backBtn" class="back" type="button">← 戻る</button><div class="detail-title"><strong id="detailTitle">案件詳細</strong><small id="detailCode"></small></div><button id="detailReload" class="refresh" type="button">更新</button></header>
   <div class="detail-content">
     <section class="hero-card"><div class="hero-row"><div><h2 id="dCustomer">お客様</h2><p id="dSchedule"></p><div id="dStatusBadge"></div></div><div id="dServiceIcon" style="font-size:38px">🧽</div></div><div class="quick-links"><a id="phoneLink" href="tel:">📞 電話する</a><a id="mapLink" href="#" target="_blank" rel="noopener">🗺 地図を開く</a></div></section>
+    <div id="detailLoadError" class="error"></div>
 
     <section class="panel"><h3>訪問・作業情報</h3><p class="panel-sub">現場へ向かう前に必ず確認してください。</p><div id="jobInfo" class="info-grid"></div><div id="customerWarning"></div></section>
 
@@ -82,7 +83,7 @@
   const C = window.DPRO_HOUSEKEEP_CONFIG || {};
   const API = C.API_BASE || 'https://dpro-housekeep-line-api.dpromstk2000.workers.dev';
   const COMPANY = C.COMPANY_CODE || 'dpro_housekeep_demo';
-  const VERSION = 'HOUSEKEEP-6-R2-STAFF-DEMO-AUTO-PREPARE-20260716';
+  const VERSION = 'HOUSEKEEP-6-R3-STAFF-DETAIL-ERROR-GUARD-20260717';
   const DEMO_MODE = new URLSearchParams(location.search).get('demo') === '1';
   let demoPrepared = false;
   const $ = id => document.getElementById(id);
@@ -236,19 +237,29 @@
   async function openJob(id) {
     currentJob = allJobs.find(x => x.id === id) || {id};
     $('detail').classList.remove('hidden'); $('detail').setAttribute('aria-hidden','false'); document.body.style.overflow='hidden';
+    clearError('detailLoadError');
+    // 一覧で取得済みの情報を先に表示し、詳細API待ちで空画面にしない。
+    renderDetail();
     await reloadJob();
   }
 
   async function reloadJob(silent=false) {
     if (!currentJob?.id) return;
+    const fallback = currentJob;
+    clearError('detailLoadError');
     if (!silent) loading(true,'案件詳細を読み込んでいます…');
     try {
       const data = await api(`/api/staff/job?staff_id=${encodeURIComponent(staff.id)}&booking_id=${encodeURIComponent(currentJob.id)}`);
+      if (!data.job) throw new Error('案件詳細データを取得できませんでした');
       currentJob = data.job;
       renderDetail();
       if (silent) toast('案件情報を更新しました');
-    } catch (e) { toast(e.message); }
-    finally { if (!silent) loading(false); }
+    } catch (e) {
+      currentJob = fallback;
+      renderDetail();
+      showError('detailLoadError', `詳細情報の読み込みに失敗しました：${e.message}`);
+      toast('詳細情報を再取得できませんでした');
+    } finally { if (!silent) loading(false); }
   }
 
   function closeDetail() {
