@@ -83,7 +83,7 @@
   const C = window.DPRO_HOUSEKEEP_CONFIG || {};
   const API = C.API_BASE || 'https://dpro-housekeep-line-api.dpromstk2000.workers.dev';
   const COMPANY = C.COMPANY_CODE || 'dpro_housekeep_demo';
-  const VERSION = 'HOUSEKEEP-6-R3-STAFF-DETAIL-ERROR-GUARD-20260717';
+  const VERSION = 'HOUSEKEEP-6-R4-STAFF-DETAIL-STABLE-20260717';
   const DEMO_MODE = new URLSearchParams(location.search).get('demo') === '1';
   let demoPrepared = false;
   const $ = id => document.getElementById(id);
@@ -112,7 +112,27 @@
   const fmtIsoTime = value => value ? new Intl.DateTimeFormat('ja-JP',{hour:'2-digit',minute:'2-digit'}).format(new Date(value)) : '―';
   const addressOf = a => [a?.prefecture,a?.city,a?.address1,a?.address2].filter(Boolean).join(' ');
   const statusOf = value => STATUS[value] || [value || '未設定','gray',0];
-  const serviceOf = job => (job.housekeep_booking_items || []).map(x => x.service_name).filter(Boolean).join('・') || 'サービス未設定';
+  const asArray = value => Array.isArray(value) ? value : (value ? [value] : []);
+  const asObject = value => Array.isArray(value) ? (value[0] || {}) : (value || {});
+  function normalizeJob(raw={}) {
+    const customer = asObject(raw.customer ?? raw.housekeep_customers);
+    const address = asObject(raw.address ?? raw.housekeep_addresses);
+    const assignedStaff = asObject(raw.assigned_staff ?? raw.housekeep_staff);
+    const items = asArray(raw.items ?? raw.housekeep_booking_items);
+    const checks = asArray(raw.checks ?? raw.housekeep_work_checks);
+    const photos = asArray(raw.photos);
+    return {
+      ...raw,
+      status: raw.status || (DEMO_MODE ? 'staff_assigned' : ''),
+      housekeep_customers: customer,
+      housekeep_addresses: address,
+      housekeep_staff: assignedStaff,
+      housekeep_booking_items: items,
+      housekeep_work_checks: checks,
+      photos
+    };
+  }
+  const serviceOf = job => asArray(job?.housekeep_booking_items).map(x => x?.service_name).filter(Boolean).join('・') || 'サービス未設定';
 
   function loading(on, text='読み込み中です…') { $('loadingText').textContent = text; $('loading').classList.toggle('show', on); }
   function showError(id, message) { const el=$(id); el.textContent=message; el.classList.add('show'); }
@@ -178,12 +198,12 @@
       const from = new Date(); from.setDate(from.getDate()-14);
       const to = new Date(); to.setDate(to.getDate()+60);
       let data = await api(`/api/staff/jobs?staff_id=${encodeURIComponent(staff.id)}&from=${ymd(from)}&to=${ymd(to)}`);
-      allJobs = data.jobs || [];
+      allJobs = asArray(data.jobs).map(normalizeJob);
       if (DEMO_MODE && !demoPrepared && allJobs.length === 0) {
         demoPrepared = true;
         await api('/api/admin/demo-prepare',{method:'POST',body:JSON.stringify({source:'staff_demo'})});
         data = await api(`/api/staff/jobs?staff_id=${encodeURIComponent(staff.id)}&from=${ymd(from)}&to=${ymd(to)}`);
-        allJobs = data.jobs || [];
+        allJobs = asArray(data.jobs).map(normalizeJob);
       }
       renderSummary(); renderJobs();
       if (silent) toast('最新情報に更新しました');
@@ -235,11 +255,11 @@
   }
 
   async function openJob(id) {
-    currentJob = allJobs.find(x => x.id === id) || {id};
+    currentJob = normalizeJob(allJobs.find(x => x.id === id) || {id});
     $('detail').classList.remove('hidden'); $('detail').setAttribute('aria-hidden','false'); document.body.style.overflow='hidden';
     clearError('detailLoadError');
-    // 一覧で取得済みの情報を先に表示し、詳細API待ちで空画面にしない。
-    renderDetail();
+    // 一覧の情報を安全に先行表示。データ形が崩れていても詳細APIの実行を止めない。
+    try { renderDetail(); } catch (e) { showError('detailLoadError', `一覧情報の表示を補正しています：${e.message}`); }
     await reloadJob();
   }
 
@@ -251,12 +271,18 @@
     try {
       const data = await api(`/api/staff/job?staff_id=${encodeURIComponent(staff.id)}&booking_id=${encodeURIComponent(currentJob.id)}`);
       if (!data.job) throw new Error('案件詳細データを取得できませんでした');
-      currentJob = data.job;
+      currentJob = normalizeJob(data.job);
+      // デモ案件だけは、チェックが空なら自動で標準チェックを復元する。
+      if (DEMO_MODE && !currentJob.housekeep_work_checks.length) {
+        await api('/api/staff/checklist/ensure',{method:'POST',body:JSON.stringify({staff_id:staff.id,booking_id:currentJob.id})});
+        const repaired = await api(`/api/staff/job?staff_id=${encodeURIComponent(staff.id)}&booking_id=${encodeURIComponent(currentJob.id)}`);
+        currentJob = normalizeJob(repaired.job);
+      }
       renderDetail();
       if (silent) toast('案件情報を更新しました');
     } catch (e) {
-      currentJob = fallback;
-      renderDetail();
+      currentJob = normalizeJob(fallback);
+      try { renderDetail(); } catch (_) { renderEmergencyDetail(); }
       showError('detailLoadError', `詳細情報の読み込みに失敗しました：${e.message}`);
       toast('詳細情報を再取得できませんでした');
     } finally { if (!silent) loading(false); }
@@ -266,8 +292,20 @@
     $('detail').classList.add('hidden'); $('detail').setAttribute('aria-hidden','true'); document.body.style.overflow=''; currentJob=null; loadJobs(true);
   }
 
+  function renderEmergencyDetail() {
+    const j=normalizeJob(currentJob||{});
+    $('detailTitle').textContent='案件詳細'; $('detailCode').textContent=j.booking_code||'';
+    $('dCustomer').textContent='お客様 様'; $('dSchedule').textContent='詳細情報を再取得してください';
+    $('dStatusBadge').innerHTML='<span class="badge gray">確認中</span>';
+    $('jobInfo').innerHTML='<div class="info wide"><span>状態</span><strong>詳細情報を読み込めませんでした。右上の「更新」を押してください。</strong></div>';
+    $('nowStatus').innerHTML='<span class="badge gray">確認中</span>';
+    $('flowButtons').innerHTML='<button class="secondary" type="button" disabled>詳細読込後に操作できます</button>';
+    $('checkList').innerHTML='<div class="empty" style="padding:22px 10px">詳細読込後にチェック項目を表示します。</div>';
+  }
+
   function renderDetail() {
-    const j=currentJob, c=j.housekeep_customers||{}, a=j.housekeep_addresses||{}, st=statusOf(j.status), address=addressOf(a);
+    currentJob = normalizeJob(currentJob);
+    const j=currentJob, c=asObject(j.housekeep_customers), a=asObject(j.housekeep_addresses), st=statusOf(j.status), address=addressOf(a);
     $('detailTitle').textContent = c.name || '案件詳細'; $('detailCode').textContent=j.booking_code||'';
     $('dCustomer').textContent = `${c.name||'お客様'} 様`; $('dSchedule').textContent = `${fmtFullDate(j.requested_date)} ${fmtTime(j.requested_start_time)}／${serviceOf(j)}`;
     $('dStatusBadge').innerHTML=`<span class="badge ${st[1]}">${esc(st[0])}</span>`;
@@ -318,7 +356,7 @@
   }
 
   function renderChecks() {
-    const checks=[...(currentJob.housekeep_work_checks||[])].sort((a,b)=>Number(a.sort_order||0)-Number(b.sort_order||0));
+    const checks=asArray(currentJob.housekeep_work_checks).sort((a,b)=>Number(a.sort_order||0)-Number(b.sort_order||0));
     const done=checks.filter(x=>x.is_checked).length, pct=checks.length?Math.round(done/checks.length*100):0;
     $('checkBar').style.width=`${pct}%`; $('checkSummary').textContent=checks.length?`${done}/${checks.length} 項目完了（${pct}%）`:'チェック項目がありません。';
     $('ensureChecks').classList.toggle('hidden',checks.length>0);
@@ -347,7 +385,7 @@
   }
 
   function renderPhotos() {
-    const photos=currentJob.photos||[];
+    const photos=asArray(currentJob.photos);
     $('photoGrid').innerHTML=photos.length?photos.map(p=>`<article class="photo"><a href="${esc(p.url)}" target="_blank" rel="noopener"><img src="${esc(p.url)}" alt="${esc(PHOTO_LABEL[p.photo_type]||'作業写真')}" loading="lazy"></a><div class="photo-info"><strong>${esc(PHOTO_LABEL[p.photo_type]||p.photo_type)}</strong><small>${esc(p.caption||'メモなし')}</small><div><span class="${p.customer_visible?'photo-public':'photo-internal'}">${p.customer_visible?'お客様公開':'社内のみ'}</span></div></div></article>`).join(''):'<div class="empty" style="grid-column:1/-1;padding:25px 10px">写真はまだありません。</div>';
   }
 
