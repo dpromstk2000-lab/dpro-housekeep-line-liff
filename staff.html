@@ -1,0 +1,366 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <meta name="theme-color" content="#17635c">
+  <title>現場スタッフ | DPRO ハウスクリーニング・家事代行</title>
+  <script src="config.js"></script>
+  <style>
+    :root{--main:#247d73;--dark:#17635c;--deep:#103d39;--mint:#e7f5f1;--pale:#f4faf8;--navy:#163a37;--text:#2a403e;--muted:#667a77;--line:#d4e3e0;--orange:#b66418;--red:#b33d3d;--blue:#3377a6;--green:#28764d;--white:#fff;--shadow:0 10px 28px rgba(20,70,65,.1)}
+    *{box-sizing:border-box}html{scroll-behavior:smooth}body{margin:0;background:#f0f6f4;color:var(--text);font-family:system-ui,-apple-system,"Segoe UI","Noto Sans JP",sans-serif;font-size:17px;line-height:1.65}button,input,select,textarea{font:inherit}button{cursor:pointer}.hidden{display:none!important}
+    .login{position:fixed;z-index:100;inset:0;display:grid;place-items:center;padding:18px;background:linear-gradient(145deg,#dff2ed,#f9fcfb)}.login-card{width:min(500px,100%);padding:26px 22px;border:1px solid #cce0dc;border-radius:24px;background:#fff;box-shadow:0 22px 55px rgba(17,68,63,.18)}.login-logo{display:grid;place-items:center;width:68px;height:68px;margin:auto;border-radius:20px;background:var(--mint);font-size:36px}.login h1{margin:14px 0 5px;text-align:center;color:var(--navy);font-size:25px}.login p{margin:0 0 18px;text-align:center;color:var(--muted)}.field{margin:14px 0}.field label{display:block;margin-bottom:6px;color:var(--navy);font-weight:850}input,select,textarea{width:100%;min-height:52px;padding:11px 13px;border:1.5px solid #b9cdca;border-radius:12px;background:#fff;color:var(--text)}textarea{min-height:110px;resize:vertical}input:focus,select:focus,textarea:focus{outline:3px solid rgba(36,125,115,.16);border-color:var(--main)}.code-row{display:grid;grid-template-columns:1fr auto;gap:8px}.clear{min-width:68px;border:1px solid var(--line);border-radius:12px;background:#fff;color:var(--red);font-weight:850}.error{display:none;margin:12px 0;padding:12px;border:1px solid #e4b4b4;border-radius:11px;background:#fff0f0;color:#982f2f;font-weight:750}.error.show{display:block}
+    .primary,.secondary,.danger,.soft{min-height:50px;padding:10px 14px;border-radius:13px;font-weight:900}.primary{border:0;background:linear-gradient(135deg,var(--main),var(--dark));color:#fff}.secondary{border:1.5px solid var(--main);background:#fff;color:var(--dark)}.danger{border:1.5px solid #d39797;background:#fffafa;color:var(--red)}.soft{border:1px solid var(--line);background:#f7faf9;color:var(--text)}button:disabled{opacity:.5;cursor:not-allowed}
+    .app{min-height:100vh;padding-bottom:78px}.top{position:sticky;z-index:30;top:0;padding:13px 15px;background:linear-gradient(135deg,var(--deep),var(--main));color:#fff;box-shadow:0 5px 18px rgba(12,56,52,.22)}.top-inner{display:flex;align-items:center;justify-content:space-between;gap:12px;width:min(1000px,100%);margin:auto}.brand{display:flex;align-items:center;gap:10px;min-width:0}.brand-icon{display:grid;place-items:center;flex:0 0 44px;height:44px;border-radius:14px;background:rgba(255,255,255,.16);font-size:24px}.brand small{display:block;font-size:11px;font-weight:800;letter-spacing:.05em;opacity:.85}.brand strong{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:18px}.top-btn{flex:0 0 auto;min-height:42px;padding:7px 11px;border:1px solid rgba(255,255,255,.35);border-radius:11px;background:rgba(255,255,255,.12);color:#fff;font-weight:850}
+    .content{width:min(1000px,100%);margin:auto;padding:15px 13px 40px}.hello{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:16px 17px;border:1px solid #d7e6e3;border-radius:18px;background:#fff;box-shadow:0 5px 16px rgba(20,70,65,.055)}.hello h1{margin:0;color:var(--navy);font-size:22px}.hello p{margin:3px 0 0;color:var(--muted);font-size:14px}.date-chip{padding:7px 11px;border-radius:99px;background:var(--mint);color:var(--dark);font-size:13px;font-weight:900;white-space:nowrap}
+    .summary{display:grid;grid-template-columns:repeat(3,1fr);gap:9px;margin:13px 0}.metric{padding:14px 10px;border:1px solid #dae7e4;border-radius:16px;background:#fff;text-align:center}.metric span{display:block;color:var(--muted);font-size:12px;font-weight:750}.metric strong{display:block;margin-top:3px;color:var(--navy);font-size:25px}.metric.attn{border-color:#e9c99f;background:#fffaf3}
+    .tabs{position:sticky;z-index:20;top:70px;display:grid;grid-template-columns:repeat(3,1fr);gap:7px;margin:14px 0;padding:7px;border:1px solid var(--line);border-radius:15px;background:rgba(255,255,255,.94);backdrop-filter:blur(7px)}.tab{min-height:45px;border:0;border-radius:11px;background:transparent;color:var(--muted);font-weight:900}.tab.on{background:var(--main);color:#fff;box-shadow:0 5px 12px rgba(36,125,115,.2)}
+    .jobs{display:grid;gap:12px}.job{overflow:hidden;border:1px solid #d8e5e2;border-radius:19px;background:#fff;box-shadow:0 5px 17px rgba(22,74,69,.06)}.job-head{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;padding:15px 16px;background:linear-gradient(135deg,#f0faf7,#fff)}.job-date{font-size:20px;color:var(--navy);font-weight:950}.job-code{margin-top:2px;color:var(--muted);font-size:12px}.badge{display:inline-flex;align-items:center;min-height:30px;padding:4px 10px;border-radius:99px;background:#e8f3f0;color:var(--dark);font-size:12px;font-weight:900;white-space:nowrap}.badge.orange{background:#fff0dc;color:#98520e}.badge.blue{background:#e8f2f9;color:#2d6891}.badge.green{background:#e5f5ea;color:#26734a}.badge.gray{background:#edf1f0;color:#5f6d6b}.job-body{padding:15px 16px}.customer{font-size:21px;color:var(--navy);font-weight:950}.service{margin-top:4px;color:#3d5754;font-weight:750}.job-meta{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:13px}.meta{padding:10px;border-radius:11px;background:var(--pale)}.meta span{display:block;color:var(--muted);font-size:12px}.meta strong{display:block;margin-top:1px;color:var(--navy);font-size:14px}.progress{display:flex;gap:5px;margin:14px 0 6px}.progress span{height:6px;flex:1;border-radius:99px;background:#dce7e5}.progress span.on{background:var(--main)}.check-count{color:var(--muted);font-size:13px}.job-actions{display:grid;grid-template-columns:1fr 1.4fr;gap:8px;margin-top:13px}.empty{padding:38px 15px;text-align:center;color:var(--muted);border:1px dashed #c8d9d6;border-radius:18px;background:#f8fbfa}
+    .detail{position:fixed;z-index:60;inset:0;background:#f0f6f4;overflow:auto}.detail-top{position:sticky;z-index:10;top:0;display:flex;align-items:center;justify-content:space-between;gap:10px;padding:11px 13px;background:linear-gradient(135deg,var(--deep),var(--main));color:#fff}.back{min-width:62px;min-height:42px;border:1px solid rgba(255,255,255,.35);border-radius:11px;background:rgba(255,255,255,.12);color:#fff;font-weight:850}.detail-title{min-width:0;text-align:center}.detail-title strong{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.detail-title small{opacity:.84}.refresh{min-width:55px;min-height:42px;border:1px solid rgba(255,255,255,.35);border-radius:11px;background:rgba(255,255,255,.12);color:#fff;font-weight:850}.detail-content{width:min(930px,100%);margin:auto;padding:13px 12px 50px}.hero-card{padding:18px;border-radius:20px;background:linear-gradient(135deg,#fff,#edf8f5);border:1px solid #d3e5e1;box-shadow:var(--shadow)}.hero-row{display:flex;justify-content:space-between;gap:12px;align-items:flex-start}.hero-card h2{margin:0;color:var(--navy);font-size:24px}.hero-card p{margin:5px 0;color:var(--muted)}.quick-links{display:grid;grid-template-columns:repeat(2,1fr);gap:8px;margin-top:14px}.quick-links a{display:grid;place-items:center;min-height:48px;border:1.5px solid var(--main);border-radius:12px;background:#fff;color:var(--dark);text-decoration:none;font-weight:900}
+    .panel{margin:13px 0;padding:17px 15px;border:1px solid #d8e5e2;border-radius:19px;background:#fff;box-shadow:0 4px 14px rgba(22,74,69,.045)}.panel h3{margin:0 0 4px;color:var(--navy);font-size:20px}.panel-sub{margin:0 0 14px;color:var(--muted);font-size:13px}.info-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}.info{padding:11px;border-radius:12px;background:var(--pale)}.info.wide{grid-column:1/-1}.info span{display:block;color:var(--muted);font-size:12px}.info strong{display:block;color:var(--navy);word-break:break-word}.warn{margin-top:10px;padding:12px;border:1px solid #e9c79d;border-radius:12px;background:#fff8ee;color:#83501e;font-weight:750}.danger-note{margin-top:10px;padding:12px;border:1px solid #e5b6b6;border-radius:12px;background:#fff3f3;color:#8c3333;font-weight:750}
+    .flow{display:grid;grid-template-columns:repeat(2,1fr);gap:9px}.flow button{min-height:58px}.flow .wide{grid-column:1/-1}.now-status{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:13px;padding:11px 12px;border-radius:12px;background:var(--mint);font-weight:850}.timeline{display:grid;grid-template-columns:repeat(3,1fr);gap:7px;margin-top:12px}.timebox{padding:9px;border-radius:11px;background:#f5f8f7;text-align:center}.timebox span{display:block;color:var(--muted);font-size:11px}.timebox strong{font-size:13px;color:var(--navy)}
+    .check-section{margin-top:15px}.check-section h4{margin:0 0 7px;color:var(--dark);font-size:16px}.check{display:flex;align-items:flex-start;gap:11px;padding:12px 5px;border-bottom:1px solid #e4ecea}.check:last-child{border-bottom:0}.check input{flex:0 0 24px;width:24px;height:24px;min-height:0;margin-top:2px;accent-color:var(--main)}.check label{flex:1;cursor:pointer;font-weight:750}.check label.done{text-decoration:line-through;color:var(--muted)}.required{margin-left:5px;color:var(--red);font-size:11px}.check-who{display:block;margin-top:2px;color:var(--muted);font-size:11px}.check-progress{height:9px;margin:10px 0;border-radius:99px;background:#dce8e5;overflow:hidden}.check-progress div{height:100%;background:linear-gradient(90deg,var(--main),#59aaa0);transition:.2s}
+    .photo-form{display:grid;gap:10px}.photo-row{display:grid;grid-template-columns:1fr 1fr;gap:8px}.filebox{position:relative;display:grid;place-items:center;min-height:95px;border:2px dashed #adcac4;border-radius:15px;background:#f4faf8;color:var(--dark);font-weight:900;text-align:center}.filebox input{position:absolute;inset:0;width:100%;height:100%;opacity:0;cursor:pointer}.file-name{display:block;margin-top:4px;color:var(--muted);font-size:12px;font-weight:650}.visible-toggle{display:flex;gap:10px;align-items:flex-start;padding:11px;border:1px solid var(--line);border-radius:12px;background:#f9fbfa}.visible-toggle input{flex:0 0 21px;width:21px;height:21px;min-height:0;margin-top:2px;accent-color:var(--main)}.visible-toggle small{display:block;color:var(--muted)}.photos{display:grid;grid-template-columns:repeat(2,1fr);gap:10px;margin-top:15px}.photo{overflow:hidden;border:1px solid var(--line);border-radius:14px;background:#f6f9f8}.photo img{display:block;width:100%;aspect-ratio:4/3;object-fit:cover}.photo-info{padding:9px}.photo-info strong{display:block;color:var(--navy);font-size:13px}.photo-info small{color:var(--muted)}.photo-public{display:inline-block;margin-top:5px;padding:2px 7px;border-radius:99px;background:#e5f5ea;color:var(--green);font-size:11px;font-weight:900}.photo-internal{display:inline-block;margin-top:5px;padding:2px 7px;border-radius:99px;background:#edf1f0;color:#5e6d6b;font-size:11px;font-weight:900}
+    .sticky-save{position:sticky;bottom:10px;display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:12px;padding:8px;border:1px solid var(--line);border-radius:15px;background:rgba(255,255,255,.94);backdrop-filter:blur(8px)}
+    .toast{position:fixed;z-index:120;left:50%;bottom:88px;transform:translateX(-50%) translateY(30px);max-width:calc(100% - 30px);padding:11px 16px;border-radius:99px;background:#173f3b;color:#fff;font-weight:850;opacity:0;pointer-events:none;transition:.2s;text-align:center}.toast.show{opacity:1;transform:translateX(-50%) translateY(0)}.loading{display:none;position:fixed;z-index:110;inset:0;background:rgba(10,43,40,.55);place-items:center;color:#fff;text-align:center;font-weight:900}.loading.show{display:grid}.spinner{width:48px;height:48px;margin:0 auto 11px;border:5px solid rgba(255,255,255,.35);border-top-color:#fff;border-radius:50%;animation:spin .8s linear infinite}@keyframes spin{to{transform:rotate(360deg)}}
+    .bottom{position:fixed;z-index:25;left:0;right:0;bottom:0;display:grid;grid-template-columns:repeat(3,1fr);gap:2px;height:67px;padding:6px;background:var(--deep);box-shadow:0 -5px 18px rgba(10,49,45,.18)}.bottom button{display:grid;place-items:center;gap:0;border:0;border-radius:10px;background:transparent;color:#cce0dc;font-size:11px;font-weight:850}.bottom button span{font-size:22px;line-height:1.1}.bottom button.on{background:rgba(255,255,255,.14);color:#fff}
+    @media(min-width:720px){body{font-size:18px}.content{padding:21px}.summary{gap:13px}.metric{padding:17px}.jobs{grid-template-columns:repeat(2,1fr)}.job{display:flex;flex-direction:column}.job-body{display:flex;flex:1;flex-direction:column}.job-actions{margin-top:auto}.detail-content{padding:20px}.detail-grid2{display:grid;grid-template-columns:1fr 1fr;gap:14px}.detail-grid2>.panel{margin:0}.photos{grid-template-columns:repeat(3,1fr)}.flow{grid-template-columns:repeat(3,1fr)}.flow .wide{grid-column:auto}.bottom{left:50%;right:auto;width:520px;transform:translateX(-50%);border-radius:18px 18px 0 0}}
+    @media(max-width:390px){body{font-size:16px}.summary{gap:6px}.metric{padding:11px 6px}.metric strong{font-size:22px}.job-meta,.info-grid{grid-template-columns:1fr}.info.wide{grid-column:auto}.photos{grid-template-columns:1fr}.photo-row{grid-template-columns:1fr}}
+  </style>
+</head>
+<body>
+<div id="login" class="login">
+  <div class="login-card">
+    <div class="login-logo">🧹</div>
+    <h1>現場スタッフ画面</h1>
+    <p>管理コードと担当者を選択してください。</p>
+    <div class="field"><label for="adminCode">管理コード</label><div class="code-row"><input id="adminCode" type="password" inputmode="numeric" autocomplete="off" placeholder="管理コード"><button id="clearCode" class="clear" type="button">削除</button></div></div>
+    <div class="field"><label for="staffSelect">担当スタッフ</label><select id="staffSelect"><option value="">管理コード確認後に表示</option></select></div>
+    <div id="loginError" class="error"></div>
+    <button id="loginBtn" class="primary" style="width:100%" type="button">担当画面を開く</button>
+  </div>
+</div>
+
+<div class="app">
+  <header class="top"><div class="top-inner"><div class="brand"><div class="brand-icon">🫧</div><div><small>DPRO CLEAN LIFE</small><strong id="brandStaff">現場スタッフ</strong></div></div><button id="reloadBtn" class="top-btn" type="button">再読込</button></div></header>
+  <main class="content">
+    <section class="hello"><div><h1 id="helloName">本日の担当</h1><p id="helloSub">訪問先と進捗を確認してください。</p></div><div id="todayChip" class="date-chip"></div></section>
+    <section class="summary"><div class="metric"><span>本日</span><strong id="mToday">0</strong></div><div class="metric attn"><span>作業中</span><strong id="mActive">0</strong></div><div class="metric"><span>今後</span><strong id="mFuture">0</strong></div></section>
+    <nav class="tabs"><button class="tab on" data-filter="today">今日</button><button class="tab" data-filter="future">今後</button><button class="tab" data-filter="done">完了</button></nav>
+    <div id="jobs" class="jobs"></div>
+  </main>
+</div>
+
+<nav class="bottom"><button class="on" data-bottom="today"><span>📍</span>今日</button><button data-bottom="future"><span>📅</span>今後</button><button data-bottom="done"><span>✓</span>完了</button></nav>
+
+<section id="detail" class="detail hidden" aria-hidden="true">
+  <header class="detail-top"><button id="backBtn" class="back" type="button">← 戻る</button><div class="detail-title"><strong id="detailTitle">案件詳細</strong><small id="detailCode"></small></div><button id="detailReload" class="refresh" type="button">更新</button></header>
+  <div class="detail-content">
+    <section class="hero-card"><div class="hero-row"><div><h2 id="dCustomer">お客様</h2><p id="dSchedule"></p><div id="dStatusBadge"></div></div><div id="dServiceIcon" style="font-size:38px">🧽</div></div><div class="quick-links"><a id="phoneLink" href="tel:">📞 電話する</a><a id="mapLink" href="#" target="_blank" rel="noopener">🗺 地図を開く</a></div></section>
+
+    <section class="panel"><h3>訪問・作業情報</h3><p class="panel-sub">現場へ向かう前に必ず確認してください。</p><div id="jobInfo" class="info-grid"></div><div id="customerWarning"></div></section>
+
+    <section class="panel"><h3>進捗を更新</h3><p class="panel-sub">実際の作業に合わせて順番に押してください。</p><div class="now-status"><span>現在</span><span id="nowStatus"></span></div><div id="flowButtons" class="flow"></div><div class="timeline"><div class="timebox"><span>到着</span><strong id="tArrived">―</strong></div><div class="timebox"><span>開始</span><strong id="tStarted">―</strong></div><div class="timebox"><span>完了</span><strong id="tCompleted">―</strong></div></div><div id="flowError" class="error"></div></section>
+
+    <div class="detail-grid2">
+      <section class="panel"><h3>作業チェック</h3><p class="panel-sub">必須項目をすべて確認してから完了してください。</p><div class="check-progress"><div id="checkBar" style="width:0%"></div></div><div id="checkSummary" class="panel-sub"></div><div id="checkList"></div><button id="ensureChecks" class="secondary hidden" style="width:100%;margin-top:10px" type="button">標準チェックを作成</button><div id="checkError" class="error"></div></section>
+
+      <section class="panel"><h3>現場メモ</h3><p class="panel-sub">破損・追加作業・引継ぎなど、社内で共有する内容です。</p><textarea id="internalNote" placeholder="例：既存傷を確認済み。追加で換気扇フィルター交換を希望。"></textarea><button id="saveNote" class="primary" style="width:100%;margin-top:10px" type="button">現場メモを保存</button><div id="noteError" class="error"></div></section>
+    </div>
+
+    <section class="panel"><h3>作業写真</h3><p class="panel-sub">写真は非公開Storageへ保存されます。公開指定できるのは作業前・作業後のみです。</p><div class="photo-form"><label class="filebox">📷 写真を撮影・選択<input id="photoFile" type="file" accept="image/jpeg,image/png,image/webp" capture="environment"><span id="fileName" class="file-name">JPEG・PNG・WebP／5MBまで</span></label><div class="photo-row"><select id="photoType"><option value="before">作業前</option><option value="after">作業後</option><option value="damage">傷・破損</option><option value="receipt">レシート・駐車料金</option><option value="other">その他</option></select><input id="photoCaption" placeholder="写真メモ（任意）"></div><label class="visible-toggle"><input id="photoVisible" type="checkbox"><span><strong>お客様のマイページへ公開</strong><small>作業前・作業後写真だけ選択できます。</small></span></label><button id="uploadPhoto" class="primary" type="button">写真を保存</button><div id="photoError" class="error"></div></div><div id="photoGrid" class="photos"></div></section>
+
+    <div class="sticky-save"><button id="closeDetailBottom" class="secondary" type="button">一覧へ戻る</button><button id="completeBottom" class="primary" type="button">作業完了へ</button></div>
+  </div>
+</section>
+
+<div id="toast" class="toast"></div><div id="loading" class="loading"><div><div class="spinner"></div><div id="loadingText">読み込み中です…</div></div></div>
+
+<script>
+(() => {
+  'use strict';
+  const C = window.DPRO_HOUSEKEEP_CONFIG || {};
+  const API = C.API_BASE || 'https://dpro-housekeep-line-api.dpromstk2000.workers.dev';
+  const COMPANY = C.COMPANY_CODE || 'dpro_housekeep_demo';
+  const VERSION = 'HOUSEKEEP-6-R1-STAFF-FIELD-20260716';
+  const $ = id => document.getElementById(id);
+  let adminKey = '';
+  let staff = null;
+  let allJobs = [];
+  let currentFilter = 'today';
+  let currentJob = null;
+  let toastTimer = null;
+
+  const STATUS = {
+    requested:['受付済み','orange',0], estimate_review:['見積確認','orange',0], quoted:['見積提示','blue',0],
+    confirmed:['予約確定','blue',1], staff_assigned:['担当決定','blue',1], traveling:['移動中','blue',2],
+    arrived:['到着','blue',3], in_progress:['作業中','blue',4], customer_check:['お客様確認','orange',5],
+    completed:['完了','green',6], change_requested:['変更希望','orange',0], cancel_requested:['キャンセル希望','orange',0],
+    cancelled:['キャンセル','gray',0], no_show:['未実施','gray',0]
+  };
+  const PHOTO_LABEL = {before:'作業前',after:'作業後',damage:'傷・破損',receipt:'レシート・駐車料金',customer_request:'お客様送付',other:'その他'};
+  const KEY_LABEL = {customer_present:'在宅・手渡し',staff_keeps:'スタッフ保管',key_box:'キーボックス',other:'その他'};
+  const PARK_LABEL = {available:'駐車場あり',paid:'有料駐車場',none:'駐車場なし',unknown:'未確認'};
+  const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+  const ymd = d => new Intl.DateTimeFormat('sv-SE',{timeZone:'Asia/Tokyo',year:'numeric',month:'2-digit',day:'2-digit'}).format(d || new Date());
+  const fmtDate = d => d ? new Intl.DateTimeFormat('ja-JP',{month:'numeric',day:'numeric',weekday:'short'}).format(new Date(`${d}T12:00:00+09:00`)) : '―';
+  const fmtFullDate = d => d ? new Intl.DateTimeFormat('ja-JP',{year:'numeric',month:'long',day:'numeric',weekday:'short'}).format(new Date(`${d}T12:00:00+09:00`)) : '―';
+  const fmtTime = value => value ? String(value).slice(0,5) : '―';
+  const fmtIsoTime = value => value ? new Intl.DateTimeFormat('ja-JP',{hour:'2-digit',minute:'2-digit'}).format(new Date(value)) : '―';
+  const addressOf = a => [a?.prefecture,a?.city,a?.address1,a?.address2].filter(Boolean).join(' ');
+  const statusOf = value => STATUS[value] || [value || '未設定','gray',0];
+  const serviceOf = job => (job.housekeep_booking_items || []).map(x => x.service_name).filter(Boolean).join('・') || 'サービス未設定';
+
+  function loading(on, text='読み込み中です…') { $('loadingText').textContent = text; $('loading').classList.toggle('show', on); }
+  function showError(id, message) { const el=$(id); el.textContent=message; el.classList.add('show'); }
+  function clearError(id) { $(id).classList.remove('show'); }
+  function toast(message) { $('toast').textContent=message; $('toast').classList.add('show'); clearTimeout(toastTimer); toastTimer=setTimeout(()=>$('toast').classList.remove('show'),2400); }
+
+  async function api(path, options={}) {
+    const url = new URL(API + path);
+    url.searchParams.set('company_code', COMPANY);
+    url.searchParams.set('admin_key', adminKey);
+    const isForm = options.body instanceof FormData;
+    const res = await fetch(url, { ...options, cache:'no-store', headers:{ ...(isForm?{}:{'Content-Type':'application/json'}), ...(options.headers||{}) } });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok || data.ok === false) {
+      const error = new Error(data.error || '通信に失敗しました');
+      error.status = res.status;
+      error.details = data.details;
+      throw error;
+    }
+    return data;
+  }
+
+  async function verifyCode() {
+    adminKey = $('adminCode').value.trim();
+    clearError('loginError');
+    if (!adminKey) throw new Error('管理コードを入力してください。');
+    const previous = $('staffSelect').value;
+    const data = await api('/api/admin/staff');
+    const list = (data.staff || []).filter(x => x.is_active);
+    $('staffSelect').innerHTML = '<option value="">担当スタッフを選択</option>' + list.map(x => `<option value="${esc(x.id)}">${esc(x.name)}（${esc({owner:'オーナー',manager:'管理者',staff:'スタッフ'}[x.role]||x.role)}）</option>`).join('');
+    const saved = localStorage.getItem('dpro_housekeep_staff_id');
+    const preferred = previous || saved;
+    if (preferred && list.some(x => x.id === preferred)) $('staffSelect').value = preferred;
+    return list;
+  }
+
+  async function enter() {
+    clearError('loginError');
+    loading(true,'スタッフ情報を確認しています…');
+    try {
+      const list = await verifyCode();
+      const id = $('staffSelect').value;
+      if (!id) {
+        if (list.length === 1) $('staffSelect').value = list[0].id;
+        else throw new Error('担当スタッフを選択してください。');
+      }
+      staff = list.find(x => x.id === $('staffSelect').value);
+      if (!staff) throw new Error('担当スタッフを選択してください。');
+      localStorage.setItem('dpro_housekeep_staff_id', staff.id);
+      sessionStorage.setItem('dpro_housekeep_admin_key', adminKey);
+      $('brandStaff').textContent = staff.name;
+      $('helloName').textContent = `${staff.name}さんの担当`;
+      $('login').style.display = 'none';
+      await loadJobs();
+    } catch (e) { showError('loginError', e.message); }
+    finally { loading(false); }
+  }
+
+  async function loadJobs(silent=false) {
+    if (!staff) return;
+    if (!silent) loading(true,'担当案件を読み込んでいます…');
+    try {
+      const from = new Date(); from.setDate(from.getDate()-14);
+      const to = new Date(); to.setDate(to.getDate()+60);
+      const data = await api(`/api/staff/jobs?staff_id=${encodeURIComponent(staff.id)}&from=${ymd(from)}&to=${ymd(to)}`);
+      allJobs = data.jobs || [];
+      renderSummary(); renderJobs();
+      if (silent) toast('最新情報に更新しました');
+    } catch (e) { toast(e.message); }
+    finally { if (!silent) loading(false); }
+  }
+
+  function jobGroup(job) {
+    const today = ymd();
+    if (job.status === 'completed' || ['cancelled','no_show'].includes(job.status)) return 'done';
+    if (job.requested_date === today) return 'today';
+    if (job.requested_date > today) return 'future';
+    return 'today';
+  }
+
+  function renderSummary() {
+    const today = ymd();
+    $('mToday').textContent = allJobs.filter(x => x.requested_date===today && !['completed','cancelled','no_show'].includes(x.status)).length;
+    $('mActive').textContent = allJobs.filter(x => ['traveling','arrived','in_progress','customer_check'].includes(x.status)).length;
+    $('mFuture').textContent = allJobs.filter(x => x.requested_date>today && !['completed','cancelled','no_show'].includes(x.status)).length;
+  }
+
+  function renderJobs() {
+    const rows = allJobs.filter(x => jobGroup(x) === currentFilter).sort((a,b) => `${a.requested_date}${a.requested_start_time}`.localeCompare(`${b.requested_date}${b.requested_start_time}`));
+    const wrap = $('jobs');
+    if (!rows.length) { wrap.innerHTML = `<div class="empty">${currentFilter==='today'?'本日の担当案件はありません。':currentFilter==='future'?'今後の担当案件はありません。':'完了した案件はありません。'}</div>`; return; }
+    wrap.innerHTML = rows.map(job => {
+      const st = statusOf(job.status);
+      const checks = job.housekeep_work_checks || [];
+      const done = checks.filter(x=>x.is_checked).length;
+      const pct = checks.length ? Math.round(done/checks.length*100) : 0;
+      const address = job.housekeep_addresses || {};
+      return `<article class="job">
+        <div class="job-head"><div><div class="job-date">${esc(fmtDate(job.requested_date))} ${esc(fmtTime(job.requested_start_time))}</div><div class="job-code">${esc(job.booking_code)}</div></div><span class="badge ${st[1]}">${esc(st[0])}</span></div>
+        <div class="job-body"><div class="customer">${esc(job.housekeep_customers?.name||'お客様')} 様</div><div class="service">${esc(serviceOf(job))}</div>
+        <div class="job-meta"><div class="meta"><span>訪問先</span><strong>${esc([address.city,address.address1].filter(Boolean).join(' ')||'未設定')}</strong></div><div class="meta"><span>鍵</span><strong>${esc(KEY_LABEL[job.key_handling]||'未確認')}</strong></div></div>
+        <div class="progress">${Array.from({length:6},(_,i)=>`<span class="${i<st[2]?'on':''}"></span>`).join('')}</div><div class="check-count">チェック ${done}/${checks.length || 0}（${pct}%）</div>
+        <div class="job-actions"><a class="secondary" style="display:grid;place-items:center;text-decoration:none" href="tel:${esc(job.housekeep_customers?.phone||'')}">電話</a><button class="primary" type="button" data-open-job="${esc(job.id)}">詳細・作業</button></div></div>
+      </article>`;
+    }).join('');
+    wrap.querySelectorAll('[data-open-job]').forEach(btn => btn.addEventListener('click', () => openJob(btn.dataset.openJob)));
+  }
+
+  function setFilter(filter) {
+    currentFilter = filter;
+    document.querySelectorAll('.tab').forEach(x => x.classList.toggle('on', x.dataset.filter===filter));
+    document.querySelectorAll('[data-bottom]').forEach(x => x.classList.toggle('on', x.dataset.bottom===filter));
+    renderJobs(); window.scrollTo({top:0,behavior:'smooth'});
+  }
+
+  async function openJob(id) {
+    currentJob = allJobs.find(x => x.id === id) || {id};
+    $('detail').classList.remove('hidden'); $('detail').setAttribute('aria-hidden','false'); document.body.style.overflow='hidden';
+    await reloadJob();
+  }
+
+  async function reloadJob(silent=false) {
+    if (!currentJob?.id) return;
+    if (!silent) loading(true,'案件詳細を読み込んでいます…');
+    try {
+      const data = await api(`/api/staff/job?staff_id=${encodeURIComponent(staff.id)}&booking_id=${encodeURIComponent(currentJob.id)}`);
+      currentJob = data.job;
+      renderDetail();
+      if (silent) toast('案件情報を更新しました');
+    } catch (e) { toast(e.message); }
+    finally { if (!silent) loading(false); }
+  }
+
+  function closeDetail() {
+    $('detail').classList.add('hidden'); $('detail').setAttribute('aria-hidden','true'); document.body.style.overflow=''; currentJob=null; loadJobs(true);
+  }
+
+  function renderDetail() {
+    const j=currentJob, c=j.housekeep_customers||{}, a=j.housekeep_addresses||{}, st=statusOf(j.status), address=addressOf(a);
+    $('detailTitle').textContent = c.name || '案件詳細'; $('detailCode').textContent=j.booking_code||'';
+    $('dCustomer').textContent = `${c.name||'お客様'} 様`; $('dSchedule').textContent = `${fmtFullDate(j.requested_date)} ${fmtTime(j.requested_start_time)}／${serviceOf(j)}`;
+    $('dStatusBadge').innerHTML=`<span class="badge ${st[1]}">${esc(st[0])}</span>`;
+    $('dServiceIcon').textContent = j.booking_type==='housekeeping'?'🏠':j.booking_type==='estimate'?'💬':'🧽';
+    $('phoneLink').href=`tel:${c.phone||''}`; $('mapLink').href=`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(address)}`;
+    const info=[
+      ['電話番号',c.phone||'―'],['サービス',serviceOf(j)],['訪問先',address||'―','wide'],['駐車場',PARK_LABEL[a.parking_type]||'未確認'],['駐車メモ',a.parking_note||'―'],['入室方法',a.entry_note||'―','wide'],['鍵の扱い',KEY_LABEL[j.key_handling]||'未確認'],['鍵メモ',j.key_note||'―'],['お客様要望',j.customer_request||'なし','wide']
+    ];
+    $('jobInfo').innerHTML=info.map(([label,value,wide])=>`<div class="info ${wide||''}"><span>${esc(label)}</span><strong>${esc(value)}</strong></div>`).join('');
+    const warnings=[];
+    if(c.pet_info)warnings.push(`<div class="warn">🐾 ${esc(c.pet_info)}</div>`);
+    if(c.allergy_info)warnings.push(`<div class="danger-note">⚠ ${esc(c.allergy_info)}</div>`);
+    if(c.access_note)warnings.push(`<div class="warn">📌 ${esc(c.access_note)}</div>`);
+    $('customerWarning').innerHTML=warnings.join('');
+    $('nowStatus').innerHTML=`<span class="badge ${st[1]}">${esc(st[0])}</span>`;
+    $('tArrived').textContent=fmtIsoTime(j.arrived_at); $('tStarted').textContent=fmtIsoTime(j.work_started_at); $('tCompleted').textContent=fmtIsoTime(j.work_completed_at);
+    renderFlow(); renderChecks(); $('internalNote').value=j.internal_note||''; renderPhotos();
+    $('completeBottom').disabled=j.status==='completed'; $('completeBottom').textContent=j.status==='completed'?'完了済み':'作業完了へ';
+  }
+
+  function renderFlow() {
+    const j=currentJob;
+    const buttons=[
+      ['traveling','🚗 移動開始','secondary'],['arrived','📍 到着','secondary'],['in_progress','🧹 作業開始','primary'],['customer_check','👀 お客様確認','secondary'],['completed','✓ 作業完了','primary']
+    ];
+    const current=statusOf(j.status)[2];
+    $('flowButtons').innerHTML=buttons.map(([value,label,cls])=>{
+      const step=statusOf(value)[2];
+      const disabled=j.status==='completed'||step<=current;
+      return `<button class="${cls}" type="button" data-status="${value}" ${disabled?'disabled':''}>${label}</button>`;
+    }).join('');
+    $('flowButtons').querySelectorAll('[data-status]').forEach(btn=>btn.addEventListener('click',()=>updateStatus(btn.dataset.status)));
+  }
+
+  async function updateStatus(status, force=false) {
+    clearError('flowError');
+    const labels={traveling:'移動開始',arrived:'到着',in_progress:'作業開始',customer_check:'お客様確認',completed:'作業完了'};
+    if(!confirm(`${labels[status]||status}に更新しますか？`))return;
+    loading(true,'進捗を更新しています…');
+    try {
+      await api('/api/staff/status',{method:'PATCH',body:JSON.stringify({staff_id:staff.id,booking_id:currentJob.id,status,force_complete:force})});
+      await reloadJob(true); toast(`${labels[status]}に更新しました`);
+    } catch(e) {
+      if(e.status===409 && status==='completed' && e.details?.unchecked?.length) {
+        showError('flowError',`未完了の必須チェックがあります：${e.details.unchecked.map(x=>x.item_name).join('、')}`);
+      } else showError('flowError',e.message);
+    } finally { loading(false); }
+  }
+
+  function renderChecks() {
+    const checks=[...(currentJob.housekeep_work_checks||[])].sort((a,b)=>Number(a.sort_order||0)-Number(b.sort_order||0));
+    const done=checks.filter(x=>x.is_checked).length, pct=checks.length?Math.round(done/checks.length*100):0;
+    $('checkBar').style.width=`${pct}%`; $('checkSummary').textContent=checks.length?`${done}/${checks.length} 項目完了（${pct}%）`:'チェック項目がありません。';
+    $('ensureChecks').classList.toggle('hidden',checks.length>0);
+    if(!checks.length){$('checkList').innerHTML='<div class="empty" style="padding:22px 10px">標準チェックを作成してください。</div>';return;}
+    const groups={}; checks.forEach(x=>(groups[x.section]??=[]).push(x));
+    $('checkList').innerHTML=Object.entries(groups).map(([section,items])=>`<div class="check-section"><h4>${esc(section)}</h4>${items.map(x=>`<div class="check"><input id="ck-${x.id}" type="checkbox" data-check="${x.id}" ${x.is_checked?'checked':''}><label for="ck-${x.id}" class="${x.is_checked?'done':''}">${esc(x.item_name)}${x.required?'<span class="required">必須</span>':''}<span class="check-who">${x.is_checked?'確認済み':'未確認'}</span></label></div>`).join('')}</div>`).join('');
+    $('checkList').querySelectorAll('[data-check]').forEach(input=>input.addEventListener('change',()=>toggleCheck(input.dataset.check,input.checked)));
+  }
+
+  async function ensureChecks() {
+    clearError('checkError'); loading(true,'標準チェックを作成しています…');
+    try { await api('/api/staff/checklist/ensure',{method:'POST',body:JSON.stringify({staff_id:staff.id,booking_id:currentJob.id})}); await reloadJob(true); toast('標準チェックを作成しました'); }
+    catch(e){showError('checkError',e.message)} finally{loading(false)}
+  }
+
+  async function toggleCheck(id, checked) {
+    clearError('checkError');
+    try { await api('/api/staff/check',{method:'PATCH',body:JSON.stringify({staff_id:staff.id,check_id:id,is_checked:checked})}); await reloadJob(true); }
+    catch(e){showError('checkError',e.message);await reloadJob(true)}
+  }
+
+  async function saveNote() {
+    clearError('noteError'); loading(true,'現場メモを保存しています…');
+    try { await api('/api/staff/note',{method:'PATCH',body:JSON.stringify({staff_id:staff.id,booking_id:currentJob.id,internal_note:$('internalNote').value})}); currentJob.internal_note=$('internalNote').value; toast('現場メモを保存しました'); }
+    catch(e){showError('noteError',e.message)} finally{loading(false)}
+  }
+
+  function renderPhotos() {
+    const photos=currentJob.photos||[];
+    $('photoGrid').innerHTML=photos.length?photos.map(p=>`<article class="photo"><a href="${esc(p.url)}" target="_blank" rel="noopener"><img src="${esc(p.url)}" alt="${esc(PHOTO_LABEL[p.photo_type]||'作業写真')}" loading="lazy"></a><div class="photo-info"><strong>${esc(PHOTO_LABEL[p.photo_type]||p.photo_type)}</strong><small>${esc(p.caption||'メモなし')}</small><div><span class="${p.customer_visible?'photo-public':'photo-internal'}">${p.customer_visible?'お客様公開':'社内のみ'}</span></div></div></article>`).join(''):'<div class="empty" style="grid-column:1/-1;padding:25px 10px">写真はまだありません。</div>';
+  }
+
+  function updatePhotoVisibleGuard() {
+    const can=['before','after'].includes($('photoType').value); $('photoVisible').disabled=!can; if(!can)$('photoVisible').checked=false;
+  }
+
+  async function uploadPhoto() {
+    clearError('photoError'); const file=$('photoFile').files[0];
+    if(!file)return showError('photoError','写真を撮影または選択してください。');
+    if(file.size>5*1024*1024)return showError('photoError','写真は1枚5MB以内にしてください。');
+    const form=new FormData(); form.append('staff_id',staff.id);form.append('booking_id',currentJob.id);form.append('photo_type',$('photoType').value);form.append('caption',$('photoCaption').value);form.append('customer_visible',$('photoVisible').checked?'true':'false');form.append('file',file,file.name||'photo.jpg');
+    loading(true,'写真を非公開Storageへ保存しています…');
+    try { await api('/api/staff/photo',{method:'POST',body:form}); $('photoFile').value='';$('fileName').textContent='JPEG・PNG・WebP／5MBまで';$('photoCaption').value='';$('photoVisible').checked=false;await reloadJob(true);toast('写真を保存しました'); }
+    catch(e){showError('photoError',e.message)} finally{loading(false)}
+  }
+
+  function init() {
+    $('todayChip').textContent=new Intl.DateTimeFormat('ja-JP',{month:'numeric',day:'numeric',weekday:'short'}).format(new Date());
+    $('helloSub').textContent=`現場スタッフ画面／${VERSION}`;
+    const savedKey=sessionStorage.getItem('dpro_housekeep_admin_key'); if(savedKey)$('adminCode').value=savedKey;
+    $('clearCode').addEventListener('click',()=>{$('adminCode').value='';$('staffSelect').innerHTML='<option value="">管理コード確認後に表示</option>';sessionStorage.removeItem('dpro_housekeep_admin_key');$('adminCode').focus()});
+    $('adminCode').addEventListener('change',async()=>{if(!$('adminCode').value.trim())return;loading(true,'管理コードを確認しています…');try{await verifyCode()}catch(e){showError('loginError',e.message)}finally{loading(false)}});
+    $('adminCode').addEventListener('keydown',e=>{if(e.key==='Enter')enter()}); $('loginBtn').addEventListener('click',enter);
+    $('reloadBtn').addEventListener('click',()=>loadJobs(true)); $('detailReload').addEventListener('click',()=>reloadJob(true)); $('backBtn').addEventListener('click',closeDetail); $('closeDetailBottom').addEventListener('click',closeDetail);
+    document.querySelectorAll('.tab').forEach(b=>b.addEventListener('click',()=>setFilter(b.dataset.filter))); document.querySelectorAll('[data-bottom]').forEach(b=>b.addEventListener('click',()=>setFilter(b.dataset.bottom)));
+    $('ensureChecks').addEventListener('click',ensureChecks); $('saveNote').addEventListener('click',saveNote); $('photoType').addEventListener('change',updatePhotoVisibleGuard); $('uploadPhoto').addEventListener('click',uploadPhoto); $('completeBottom').addEventListener('click',()=>updateStatus('completed'));
+    $('photoFile').addEventListener('change',()=>{$('fileName').textContent=$('photoFile').files[0]?.name||'JPEG・PNG・WebP／5MBまで'}); updatePhotoVisibleGuard();
+    if(new URLSearchParams(location.search).get('demo')==='1'){$('adminCode').value='1234';verifyCode().then(list=>{const preferred=list.find(x=>x.staff_code==='ST-002')||list.find(x=>x.role==='staff')||list[0];if(preferred)$('staffSelect').value=preferred.id;enter()}).catch(e=>showError('loginError',e.message));}
+  }
+  init();
+})();
+</script>
+</body>
+</html>
