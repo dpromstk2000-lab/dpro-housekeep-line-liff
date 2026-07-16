@@ -1,0 +1,109 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <meta name="theme-color" content="#247d73">
+  <title>DPRO ハウスクリーニング・家事代行</title>
+  <script src="config.js"></script>
+  <style>
+    :root{--main:#247d73;--main2:#17635c;--mint:#e6f5f1;--mint2:#f3fbf8;--navy:#173b3a;--text:#263c3b;--muted:#617776;--line:#cfe2de;--white:#fff;--orange:#b86519;--danger:#b63c3c;--shadow:0 12px 34px rgba(24,83,77,.11)}
+    *{box-sizing:border-box}html{scroll-behavior:smooth}body{margin:0;background:linear-gradient(180deg,#eff9f6 0,#f8fbfa 320px,#f4f7f6 100%);color:var(--text);font-family:system-ui,-apple-system,"Segoe UI","Noto Sans JP",sans-serif;font-size:17px;line-height:1.72}
+    button,input,select,textarea{font:inherit}button{cursor:pointer}.wrap{width:min(760px,100%);margin:auto;padding:0 16px 72px}.hero{margin:0 -16px 20px;padding:28px 20px 26px;background:linear-gradient(135deg,#17675f,#2d9185);color:#fff;border-radius:0 0 28px 28px;box-shadow:var(--shadow)}
+    .brand{display:flex;gap:13px;align-items:center}.logo{display:grid;place-items:center;width:52px;height:52px;border-radius:17px;background:rgba(255,255,255,.18);font-size:28px}.eyebrow{font-size:14px;font-weight:800;letter-spacing:.08em;opacity:.9}.hero h1{margin:2px 0 0;font-size:clamp(23px,6vw,31px);line-height:1.35}.hero p{margin:14px 0 0;font-weight:650;font-size:16px}.hero-points{display:flex;flex-wrap:wrap;gap:8px;margin-top:16px}.hero-points span{padding:6px 11px;border-radius:99px;background:rgba(255,255,255,.15);font-size:14px;font-weight:750}
+    .notice{display:flex;gap:10px;padding:14px 15px;margin:16px 0;border:1px solid #b9ddd5;background:#fff;border-radius:15px;color:#345b57;font-weight:650}.notice b{color:var(--main2)}
+    .progress{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin:20px 0}.prog{height:7px;border-radius:99px;background:#d7e5e2}.prog.on{background:var(--main)}
+    .card{background:#fff;border:1px solid #dce9e6;border-radius:22px;padding:22px 18px;margin:16px 0;box-shadow:0 5px 18px rgba(30,82,77,.055)}.card h2{display:flex;align-items:center;gap:10px;margin:0 0 6px;color:var(--navy);font-size:22px;line-height:1.45}.num{display:grid;place-items:center;flex:0 0 32px;height:32px;border-radius:11px;background:var(--main);color:#fff;font-size:16px}.sub{margin:0 0 18px;color:var(--muted);font-size:15px}
+    .type-grid{display:grid;grid-template-columns:1fr;gap:12px}.type-card{position:relative;text-align:left;width:100%;border:2px solid var(--line);background:#fff;border-radius:18px;padding:17px 16px;color:var(--text);transition:.15s}.type-card:hover,.type-card.selected{border-color:var(--main);background:var(--mint2);box-shadow:0 7px 18px rgba(36,125,115,.12)}.type-card strong{display:block;color:var(--navy);font-size:19px}.type-card small{display:block;margin-top:4px;color:var(--muted);font-size:14px}.type-card .ico{font-size:26px;margin-right:7px}.selected:after{content:"✓";position:absolute;right:13px;top:13px;display:grid;place-items:center;width:27px;height:27px;border-radius:50%;background:var(--main);color:#fff;font-weight:900}
+    .services{display:grid;gap:10px}.service{display:grid;grid-template-columns:26px 1fr auto;gap:10px;align-items:start;padding:15px;border:1.5px solid var(--line);border-radius:16px;background:#fff}.service:has(input:checked){border-color:var(--main);background:var(--mint2)}.service input{width:21px;height:21px;margin:4px 0;accent-color:var(--main)}.service strong{display:block;font-size:17px;color:var(--navy)}.service small{display:block;color:var(--muted);font-size:14px}.price{white-space:nowrap;font-weight:850;color:var(--main2);font-size:15px}
+    .field{margin:15px 0}.field label,.label{display:block;margin:0 0 6px;color:var(--navy);font-weight:800;font-size:16px}.req{margin-left:5px;color:var(--danger);font-size:13px}.optional{margin-left:5px;color:var(--muted);font-size:13px;font-weight:600}input,select,textarea{width:100%;min-height:52px;padding:11px 13px;border:1.5px solid #bfcfcd;border-radius:12px;background:#fff;color:var(--text);font-size:17px}textarea{min-height:105px;resize:vertical}input:focus,select:focus,textarea:focus{outline:3px solid rgba(36,125,115,.16);border-color:var(--main)}.row{display:grid;grid-template-columns:1fr;gap:0 13px}.hint{margin:5px 0 0;color:var(--muted);font-size:13px}.radio-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:9px}.radio{display:flex;align-items:center;gap:8px;min-height:52px;padding:10px;border:1.5px solid var(--line);border-radius:12px;background:#fff;font-weight:700}.radio:has(input:checked){border-color:var(--main);background:var(--mint2)}.radio input{width:19px;height:19px;min-height:0;accent-color:var(--main)}
+    .returning{display:none;padding:14px;border:1px solid #9bcfc4;background:#effaf7;border-radius:14px}.returning.show{display:block}.returning strong{color:var(--main2)}.summary{background:#f4faf8;border:1px solid #c8e3dd;border-radius:16px;padding:16px}.sum-row{display:flex;justify-content:space-between;gap:16px;padding:7px 0;border-bottom:1px dashed #cbdedb}.sum-row:last-child{border:0}.sum-row span:first-child{color:var(--muted)}.total{font-size:20px;color:var(--main2);font-weight:900}.warning{padding:12px;border-radius:12px;background:#fff7ed;color:#8c501b;font-size:14px;font-weight:650}.agree{display:flex;gap:10px;align-items:flex-start;margin:17px 0}.agree input{flex:0 0 21px;width:21px;height:21px;min-height:0;margin-top:4px;accent-color:var(--main)}
+    .primary{width:100%;min-height:58px;border:0;border-radius:15px;background:linear-gradient(135deg,var(--main),var(--main2));color:#fff;font-size:19px;font-weight:900;box-shadow:0 8px 22px rgba(30,111,102,.25)}.primary:disabled{cursor:not-allowed;opacity:.55;box-shadow:none}.secondary{width:100%;min-height:50px;border:1.5px solid var(--main);border-radius:13px;background:#fff;color:var(--main2);font-weight:850}.error{display:none;margin:14px 0;padding:13px;border-radius:12px;background:#fff0f0;border:1px solid #e6b7b7;color:#9b2f2f;font-weight:750}.error.show{display:block}.success{display:none;text-align:center;padding:27px 18px}.success.show{display:block}.success .check{display:grid;place-items:center;width:70px;height:70px;margin:auto;border-radius:50%;background:var(--mint);color:var(--main);font-size:37px;font-weight:900}.success h2{display:block;margin:16px 0 7px;font-size:25px}.codebox{margin:16px 0;padding:15px;border:1px solid var(--line);border-radius:14px;background:#f6faf9}.codebox strong{display:block;font-size:23px;color:var(--main2)}.hidden{display:none!important}.loading{display:none;position:fixed;inset:0;z-index:20;background:rgba(14,45,42,.55);place-items:center;color:#fff;text-align:center;font-weight:850}.loading.show{display:grid}.spinner{width:48px;height:48px;margin:0 auto 12px;border:5px solid rgba(255,255,255,.35);border-top-color:#fff;border-radius:50%;animation:spin .8s linear infinite}@keyframes spin{to{transform:rotate(360deg)}}footer{text-align:center;margin-top:28px;color:var(--muted);font-size:13px}
+    @media(min-width:600px){.wrap{padding-left:22px;padding-right:22px}.hero{margin-left:-22px;margin-right:-22px;padding-left:30px}.type-grid{grid-template-columns:repeat(3,1fr)}.type-card{min-height:135px}.row.two{grid-template-columns:repeat(2,1fr)}.card{padding:26px}.radio-grid{grid-template-columns:repeat(4,1fr)}}
+  </style>
+</head>
+<body>
+<div class="wrap">
+  <header class="hero">
+    <div class="brand"><div class="logo">🫧</div><div><div class="eyebrow">DPRO CLEAN LIFE SUPPORT</div><h1 id="companyName">ハウスクリーニング・家事代行</h1></div></div>
+    <p>お掃除・家事のお困りごとを、LINEからかんたん予約・相談。</p>
+    <div class="hero-points"><span>見積り相談OK</span><span>定期利用対応</span><span>作業報告まで確認</span></div>
+  </header>
+
+  <div class="notice">💡 <div><b>初回だけ</b>お名前・電話番号・訪問先を登録します。次回から入力を省略できます。</div></div>
+  <div class="progress"><div class="prog on"></div><div class="prog on"></div><div class="prog on"></div><div class="prog on"></div></div>
+
+  <main id="formArea">
+    <section class="card">
+      <h2><span class="num">1</span>ご利用内容</h2><p class="sub">ご希望に近いものを1つ選んでください。</p>
+      <div class="type-grid" id="typeGrid">
+        <button class="type-card selected" type="button" data-type="house_cleaning"><strong><span class="ico">✨</span>専門清掃</strong><small>エアコン・浴室・キッチンなど</small></button>
+        <button class="type-card" type="button" data-type="housekeeping"><strong><span class="ico">🏠</span>家事代行</strong><small>掃除・洗濯・片付け・料理など</small></button>
+        <button class="type-card" type="button" data-type="estimate"><strong><span class="ico">💬</span>無料見積り</strong><small>写真や訪問で事前に相談</small></button>
+      </div>
+      <div style="height:14px"></div><div class="label">サービスを選択<span class="req">必須</span></div>
+      <div class="services" id="services"><div class="sub">サービス情報を読み込んでいます…</div></div>
+    </section>
+
+    <section class="card">
+      <h2><span class="num">2</span>希望日時</h2><p class="sub">30分単位で選べます。確定日時は受付後にご案内します。</p>
+      <div class="row two"><div class="field"><label for="date">希望日<span class="req">必須</span></label><input id="date" type="date" required></div><div class="field"><label for="time">希望時間<span class="req">必須</span></label><select id="time" required><option value="">希望日を先に選択</option></select></div></div>
+      <div id="slotInfo" class="hint">過去の日付は選択できません。</div>
+    </section>
+
+    <section class="card">
+      <h2><span class="num">3</span>お客様・訪問先</h2><p class="sub">安全な訪問と連絡のために使用します。</p>
+      <div id="returning" class="returning">✓ <strong id="returnName"></strong>様の登録情報を取得しました。入力内容をご確認ください。</div>
+      <div class="row two"><div class="field"><label for="name">お名前<span class="req">必須</span></label><input id="name" autocomplete="name" placeholder="例：清掃 花子"></div><div class="field"><label for="kana">フリガナ<span class="optional">任意</span></label><input id="kana" placeholder="例：セイソウ ハナコ"></div></div>
+      <div class="field"><label for="phone">電話番号<span class="req">必須</span></label><input id="phone" type="tel" inputmode="tel" autocomplete="tel" placeholder="例：090-1234-5678"><p class="hint">ハイフンあり・なし、全角、+81形式にも対応します。</p></div>
+      <div class="row two"><div class="field"><label for="postal">郵便番号<span class="optional">任意</span></label><input id="postal" inputmode="numeric" placeholder="例：811-2207"></div><div class="field"><label for="city">市区町村<span class="req">必須</span></label><input id="city" autocomplete="address-level2" placeholder="例：糟屋郡志免町"></div></div>
+      <div class="field"><label for="address1">町名・番地<span class="req">必須</span></label><input id="address1" autocomplete="address-line1" placeholder="例：南里1-2-3"></div>
+      <div class="field"><label for="address2">建物名・部屋番号<span class="optional">任意</span></label><input id="address2" autocomplete="address-line2" placeholder="例：DPROハイツ101"></div>
+      <input id="addressId" type="hidden">
+    </section>
+
+    <section class="card">
+      <h2><span class="num">4</span>訪問条件・ご希望</h2><p class="sub">当日の作業をスムーズにするため、分かる範囲で選択してください。</p>
+      <div class="label">駐車場所<span class="req">必須</span></div><div class="radio-grid"><label class="radio"><input type="radio" name="parking" value="available" checked>無料あり</label><label class="radio"><input type="radio" name="parking" value="paid">有料あり</label><label class="radio"><input type="radio" name="parking" value="none">なし</label><label class="radio"><input type="radio" name="parking" value="unknown">不明</label></div>
+      <div class="field"><label for="pet">ペット<span class="optional">任意</span></label><select id="pet"><option value="none">いない</option><option value="dog">犬がいる</option><option value="cat">猫がいる</option><option value="other">その他のペットがいる</option></select></div>
+      <div class="field"><label for="key">訪問時の鍵<span class="req">必須</span></label><select id="key"><option value="customer_present">在宅して開ける</option><option value="key_box">キーボックス</option><option value="staff_keeps">定期利用で事業者が保管</option><option value="other">その他・相談したい</option></select></div>
+      <div class="field"><label for="request">汚れ・作業内容・ご要望<span class="optional">任意</span></label><textarea id="request" placeholder="例：浴室の水あかと鏡を重点的にお願いします。小型犬が1匹います。"></textarea></div>
+      <div class="warning">写真送信機能は、予約受付後の確認画面で利用できるようになります。見積りが必要なサービスは、写真または訪問確認後に料金を確定します。</div>
+    </section>
+
+    <section class="card">
+      <h2>予約内容の確認</h2><p class="sub">入力内容を確認して送信してください。</p>
+      <div class="summary" id="summary"></div>
+      <label class="agree"><input id="agree" type="checkbox"><span>入力内容と、予約確定前に事業者から確認連絡が入る場合があることに同意します。</span></label>
+      <div id="error" class="error"></div><button id="submit" class="primary" type="button">この内容で予約・相談する</button>
+    </section>
+  </main>
+
+  <section id="success" class="card success"><div class="check">✓</div><h2>受付が完了しました</h2><p>内容を確認後、担当者からご連絡します。</p><div class="codebox">受付番号<strong id="bookingCode">―</strong></div><p id="successDetail"></p><button class="secondary" type="button" onclick="location.reload()">続けて別の予約をする</button></section>
+  <footer><div id="version">DPRO House Cleaning & Housekeeping LINE</div><div>送信情報は予約・訪問対応のために使用します。</div></footer>
+</div>
+<div id="loading" class="loading"><div><div class="spinner"></div><div id="loadingText">読み込み中です…</div></div></div>
+
+<script>
+const C=window.DPRO_HOUSEKEEP_CONFIG||{};const API=C.API_BASE;const COMPANY=C.COMPANY_CODE||'dpro_housekeep_demo';
+const $=id=>document.getElementById(id);let config=null,currentType='house_cleaning',lineUserId=null,selectedAddress=null;
+const yen=n=>n==null?'要見積り':new Intl.NumberFormat('ja-JP',{style:'currency',currency:'JPY',maximumFractionDigits:0}).format(n);
+const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+function loading(on,text='読み込み中です…'){$('loadingText').textContent=text;$('loading').classList.toggle('show',on)}
+async function api(path,opt={}){const u=new URL(API+path);u.searchParams.set('company_code',COMPANY);const r=await fetch(u,{...opt,headers:{'Content-Type':'application/json',...(opt.headers||{})}});const d=await r.json().catch(()=>({}));if(!r.ok||d.ok===false)throw new Error(d.error||'通信に失敗しました');return d}
+function getLineId(){const p=new URLSearchParams(location.search);return p.get('line_user_id')||p.get('uid')||null}
+async function load(){loading(true);try{config=await api('/api/public/config');$('companyName').textContent=config.company.company_name;const today=new Date().toLocaleDateString('sv-SE',{timeZone:'Asia/Tokyo'});$('date').min=today;const max=new Date(Date.now()+(config.company.booking_open_days||90)*86400000).toLocaleDateString('sv-SE',{timeZone:'Asia/Tokyo'});$('date').max=max;lineUserId=getLineId();renderServices();if(lineUserId)await lookupCustomer();updateSummary();$('version').textContent=`${C.VERSION||'HOUSEKEEP-3'} / ${config.company.company_name}`}catch(e){showError(e.message)}finally{loading(false)}}
+function renderServices(){const list=(config?.services||[]).filter(s=>s.category===currentType);$('services').innerHTML=list.length?list.map(s=>`<label class="service"><input type="checkbox" value="${s.id}" data-name="${esc(s.service_name)}" data-price="${s.price??''}" data-duration="${s.duration_minutes}"><span><strong>${esc(s.service_name)}</strong><small>${esc(s.description||'')}</small></span><span class="price">${s.pricing_type==='from'?'～':''}${yen(s.price)}</span></label>`).join(''):'<div class="notice">現在選べるサービスがありません。</div>';$('services').querySelectorAll('input').forEach(x=>x.addEventListener('change',updateSummary))}
+async function lookupCustomer(){try{const d=await api('/api/customer/lookup?line_user_id='+encodeURIComponent(lineUserId));if(!d.found)return;const c=d.customer,a=(d.addresses||[])[0];$('name').value=c.name||'';$('kana').value=c.name_kana||'';$('phone').value=c.phone||'';if(a){selectedAddress=a;$('addressId').value=a.id;$('postal').value=a.postal_code||'';$('city').value=a.city||'';$('address1').value=a.address1||'';$('address2').value=a.address2||''} $('returnName').textContent=c.name;$('returning').classList.add('show')}catch(e){console.warn(e)}}
+async function loadSlots(){const date=$('date').value;$('time').innerHTML='<option value="">読み込み中…</option>';if(!date)return;try{const d=await api('/api/public/availability?date='+encodeURIComponent(date));$('time').innerHTML='<option value="">選択してください</option>'+d.slots.filter(x=>x.available).map(x=>`<option value="${x.time}">${x.time}</option>`).join('');$('slotInfo').textContent=d.closed?'休業日のため選択できません。':d.slots.some(x=>x.available)?'空きのある時間を表示しています。':'この日は空きがありません。'}catch(e){$('time').innerHTML='<option value="">選択できません</option>';$('slotInfo').textContent=e.message}updateSummary()}
+function selectedServices(){return [...$('services').querySelectorAll('input:checked')].map(x=>({service_id:x.value,name:x.dataset.name,price:x.dataset.price===''?null:Number(x.dataset.price),duration:Number(x.dataset.duration)}))}
+function updateSummary(){const sv=selectedServices(),total=sv.length&&sv.every(x=>x.price!=null)?sv.reduce((a,x)=>a+x.price,0):null;const date=$('date').value||'未選択',time=$('time').value||'未選択';$('summary').innerHTML=`<div class="sum-row"><span>利用内容</span><strong>${esc({house_cleaning:'専門清掃',housekeeping:'家事代行',estimate:'無料見積り'}[currentType])}</strong></div><div class="sum-row"><span>サービス</span><strong>${sv.length?sv.map(x=>esc(x.name)).join('<br>'):'未選択'}</strong></div><div class="sum-row"><span>希望日時</span><strong>${esc(date)} ${esc(time)}</strong></div><div class="sum-row"><span>料金目安</span><strong class="total">${sv.length?yen(total):'―'}</strong></div>`}
+function value(id){return $(id).value.trim()}function radio(name){return document.querySelector(`input[name="${name}"]:checked`)?.value}
+function validate(){const sv=selectedServices();if(!sv.length)return'サービスを1つ以上選択してください。';if(!value('date')||!value('time'))return'希望日時を選択してください。';if(!value('name'))return'お名前を入力してください。';const phone=value('phone').normalize('NFKC').replace(/\D/g,'');if(phone.length<10||phone.length>11)return'電話番号を確認してください。';if(!value('city')||!value('address1'))return'訪問先住所を入力してください。';if(!$('agree').checked)return'同意項目を確認してください。';return''}
+function showError(m){$('error').textContent=m;$('error').classList.add('show');$('error').scrollIntoView({behavior:'smooth',block:'center'})}
+async function submit(){const err=validate();if(err)return showError(err);$('error').classList.remove('show');$('submit').disabled=true;loading(true,'予約内容を送信しています…');try{const payload={booking_type:currentType,requested_date:value('date'),requested_start_time:value('time'),booking_source:'line',customer:{line_user_id:lineUserId,name:value('name'),name_kana:value('kana'),phone:value('phone')},address:{address_id:value('addressId')||null,postal_code:value('postal'),prefecture:'福岡県',city:value('city'),address1:value('address1'),address2:value('address2'),parking_type:radio('parking')},items:selectedServices().map(x=>({service_id:x.service_id,quantity:1})),customer_request:value('request'),key_handling:value('key'),visit_condition:{parking:radio('parking'),pet:value('pet')}};const d=await api('/api/booking/create',{method:'POST',body:JSON.stringify(payload)});$('bookingCode').textContent=d.booking.booking_code;$('successDetail').textContent=`希望日時：${d.booking.requested_date} ${String(d.booking.requested_start_time).slice(0,5)}`;$('formArea').classList.add('hidden');$('success').classList.add('show');scrollTo({top:0,behavior:'smooth'})}catch(e){showError(e.message);$('submit').disabled=false}finally{loading(false)}}
+document.querySelectorAll('.type-card').forEach(b=>b.addEventListener('click',()=>{document.querySelectorAll('.type-card').forEach(x=>x.classList.remove('selected'));b.classList.add('selected');currentType=b.dataset.type;renderServices();updateSummary()}));
+$('date').addEventListener('change',loadSlots);$('time').addEventListener('change',updateSummary);['name','phone','city','address1'].forEach(id=>$(id).addEventListener('input',updateSummary));$('submit').addEventListener('click',submit);load();
+</script>
+</body>
+</html>
