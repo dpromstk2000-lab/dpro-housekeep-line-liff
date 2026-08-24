@@ -1,0 +1,23 @@
+{
+  "product": "HOUSEKEEP",
+  "audit_sequence": 2,
+  "standard": "DPRO_PRODUCT_READY_STANDARD_V1.0",
+  "supabase_project": "cbknucemarcpbscirzyv",
+  "edge_function": "dpro-housekeep-product-ready-v2",
+  "edge_function_id": "07218044-e936-422f-9d0f-3c6a2cad2c68",
+  "edge_function_version": 4,
+  "edge_ezbr_sha256": "8b13228745b9b43bfe0783a37b8c3a55042d70ab1ef79d50e159806eafeeb4f1",
+  "versions": {
+    "database": "HOUSEKEEP-DB-PR2-20260824",
+    "adapter": "HOUSEKEEP-PR2-GATEWAY-20260824",
+    "frontend": "HOUSEKEEP-8-PR2-FRONTEND-20260824",
+    "worker": "HOUSEKEEP-8-PR2-GATEWAY-20260824"
+  },
+  "bindings": {
+    "line": "deferred_until_contract_fail_closed",
+    "support_recovery": false,
+    "website_sync": false,
+    "service_binding": false
+  },
+  "final_lock_self_confirm": false
+}

@@ -1,0 +1,5 @@
+function=dpro-housekeep-product-ready-v2
+function_id=07218044-e936-422f-9d0f-3c6a2cad2c68
+deployed_version=4
+ezbr_sha256=8b13228745b9b43bfe0783a37b8c3a55042d70ab1ef79d50e159806eafeeb4f1
+supabase_project=cbknucemarcpbscirzyv
