@@ -1,0 +1,28 @@
+{
+  "product": "HOUSEKEEP",
+  "audit_sequence": 2,
+  "probe": "R2_V5_STAFF_REVOKE_AUDIT_FIX",
+  "checked_at": "2026-08-24T03:07:05.393Z",
+  "edge_version": 5,
+  "edge_ezbr_sha256": "6101bc94c8e1b851c68aec842cfc1d1c254ab4387da2f70042c19f641e4c9b43",
+  "health": {
+    "ok": true,
+    "version": "HOUSEKEEP-8-PR2-GATEWAY-20260824",
+    "versionsAligned": true
+  },
+  "issue": {
+    "ok": true,
+    "staff_id": "091c0db5-5117-4ba5-bb5a-e680dca3eb06",
+    "role": "staff",
+    "server_authority": true
+  },
+  "revoke": {
+    "ok": true,
+    "revoked": true
+  },
+  "revoked_session_rejected": {
+    "status": 401,
+    "ok": true
+  },
+  "session_token_persisted": false
+}
