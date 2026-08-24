@@ -1,0 +1,523 @@
+{
+  "ok": true,
+  "checkedAt": "2026-08-24T02:04:31.370Z",
+  "base": "https://cbknucemarcpbscirzyv.supabase.co/functions/v1/dpro-housekeep-product-ready-v2",
+  "total": 27,
+  "passed": 27,
+  "failed": 0,
+  "results": [
+    {
+      "name": "health_versions",
+      "ok": true,
+      "detail": {
+        "status": 200,
+        "ok": true,
+        "data": {
+          "ok": true,
+          "version": "HOUSEKEEP-8-PR2-GATEWAY-20260824",
+          "supabase": "ok",
+          "database_version": "HOUSEKEEP-DB-PR2-20260824",
+          "frontend_version": "HOUSEKEEP-8-PR2-FRONTEND-20260824",
+          "adapter_version": "HOUSEKEEP-PR2-GATEWAY-20260824",
+          "versionsAligned": true
+        },
+        "headers": {
+          "access-control-allow-headers": "content-type,x-admin-key,x-staff-session,x-line-id-token,authorization",
+          "access-control-allow-methods": "GET,POST,PATCH,DELETE,OPTIONS",
+          "alt-svc": "h3=\":443\"; ma=86400",
+          "cache-control": "no-store",
+          "cf-cache-status": "DYNAMIC",
+          "cf-ray": "a2fec8e95bb6e8d8-SJC",
+          "connection": "keep-alive",
+          "content-encoding": "gzip",
+          "content-length": "153",
+          "content-type": "application/json; charset=utf-8",
+          "date": "Mon, 24 Aug 2026 02:04:13 GMT",
+          "endpoint-load-metrics": "application_utilization:44,named_metrics.queue_depth:44",
+          "sb-gateway-version": "1",
+          "sb-project-ref": "cbknucemarcpbscirzyv",
+          "sb-request-id": "01a03182-cdf2-7269-9ed1-f60f02922884",
+          "server": "cloudflare",
+          "set-cookie": "__cf_bm=VS99zvCjwORNRH5NH5RYpKoqlah7nukFy0EOON0jWAU-1787537051.101963-1.0.1.1-QVdLPUBvsWrWtll5IWCIpRuQ0FfGL.DwDhSRwaatBPtJFpCDGfAm7Z50bKS3dsoIMHUJM8uOpjg3ZZz6_AcARE7T3xwyniplwvK69U_lJ1RjwpIm1wqV55nazHN8l0q1; HttpOnly; SameSite=None; Secure; Path=/; Domain=supabase.co; Expires=Mon, 24 Aug 2026 02:34:13 GMT",
+          "strict-transport-security": "max-age=31536000; includeSubDomains; preload",
+          "vary": "Accept-Encoding, Origin",
+          "x-content-type-options": "nosniff",
+          "x-deno-execution-id": "802a39b3-e09a-4514-b6ce-f8b3e1d2aed1",
+          "x-dpro-adapter-version": "HOUSEKEEP-PR2-GATEWAY-20260824",
+          "x-sb-edge-region": "us-west-1",
+          "x-served-by": "supabase-edge-runtime"
+        }
+      }
+    },
+    {
+      "name": "product_ready_contract",
+      "ok": true,
+      "detail": {
+        "ok": true,
+        "product": "HOUSEKEEP",
+        "versionsAligned": true,
+        "versions": {
+          "db": "HOUSEKEEP-DB-PR2-20260824",
+          "adapter": "HOUSEKEEP-PR2-GATEWAY-20260824",
+          "frontend": "HOUSEKEEP-8-PR2-FRONTEND-20260824",
+          "worker": "HOUSEKEEP-8-PR2-GATEWAY-20260824"
+        },
+        "security": {
+          "productionGuard": true,
+          "demoCodeProductionRejected": true,
+          "line": {
+            "checks": [
+              "sub",
+              "aud",
+              "exp"
+            ],
+            "bindingStatus": "deferred_until_contract",
+            "clientSuppliedIdentityAccepted": false,
+            "productionUnboundFailsClosed": true
+          },
+          "staff": {
+            "serverIssuedSession": true,
+            "capabilityEnforced": true,
+            "revokeSupported": true,
+            "criticalAudit": true,
+            "clientStaffIdAuthoritative": false
+          },
+          "owner": {
+            "hash": "PBKDF2-SHA256",
+            "productionMissingCredentialFailsClosed": true
+          },
+          "cors": {
+            "wildcard": false
+          },
+          "photo": {
+            "bucket": "housekeep-job-photos",
+            "expectedPublic": false,
+            "customerVisibleDefault": false
+          }
+        },
+        "feature_bindings": {
+          "support_recovery": false,
+          "website_sync": false,
+          "service_binding": false,
+          "integration_status": "deferred_until_contract"
+        },
+        "checked_at": "2026-08-24T02:04:13.951Z"
+      }
+    },
+    {
+      "name": "invalid_owner_rejected",
+      "ok": true,
+      "detail": {
+        "status": 401,
+        "data": {
+          "ok": false,
+          "error": "管理コードが正しくありません"
+        }
+      }
+    },
+    {
+      "name": "system_check",
+      "ok": true,
+      "detail": {
+        "ok": true,
+        "all_ok": true,
+        "passed": 6,
+        "total": 6,
+        "version": "HOUSEKEEP-8-PR2-GATEWAY-20260824",
+        "items": [
+          {
+            "key": "gateway",
+            "label": "HOUSEKEEP専用Gateway",
+            "ok": true,
+            "detail": "HOUSEKEEP-PR2-GATEWAY-20260824"
+          },
+          {
+            "key": "version",
+            "label": "Version整合",
+            "ok": true,
+            "detail": "HOUSEKEEP-DB-PR2-20260824 / HOUSEKEEP-8-PR2-FRONTEND-20260824"
+          },
+          {
+            "key": "phone",
+            "label": "電話番号正規化",
+            "ok": true,
+            "detail": "fullwidth/+81/0081"
+          },
+          {
+            "key": "production_guard",
+            "label": "Production Guard",
+            "ok": true,
+            "detail": "demo=true"
+          },
+          {
+            "key": "line",
+            "label": "LINE Fail-close",
+            "ok": true,
+            "detail": "sub/aud/exp + unbound fail-close"
+          },
+          {
+            "key": "staff",
+            "label": "Staff server authority",
+            "ok": true,
+            "detail": "session/capability/revoke/audit"
+          }
+        ]
+      }
+    },
+    {
+      "name": "phone_normalization",
+      "ok": true,
+      "detail": {
+        "ok": true,
+        "normalized": [
+          {
+            "input": "090-1111-2222",
+            "output": "09011112222"
+          },
+          {
+            "input": "０９０１１１１２２２２",
+            "output": "09011112222"
+          },
+          {
+            "input": "+81 90 1111 2222",
+            "output": "09011112222"
+          },
+          {
+            "input": "0081-90-1111-2222",
+            "output": "09011112222"
+          }
+        ]
+      }
+    },
+    {
+      "name": "line_unbound_fail_close",
+      "ok": true,
+      "detail": {
+        "status": 503,
+        "data": {
+          "ok": false,
+          "error": "LINE本人確認bindingは契約時設定待ちです。"
+        }
+      }
+    },
+    {
+      "name": "past_time_rejected",
+      "ok": true,
+      "detail": {
+        "status": 400,
+        "data": {
+          "ok": false,
+          "error": "過去日時は予約できません。"
+        }
+      }
+    },
+    {
+      "name": "non_30min_rejected",
+      "ok": true,
+      "detail": {
+        "status": 400,
+        "data": {
+          "ok": false,
+          "error": "希望時間は30分単位で指定してください。"
+        }
+      }
+    },
+    {
+      "name": "calendar_special_open",
+      "ok": true,
+      "detail": {
+        "ok": true,
+        "date": "2026-09-06",
+        "closed": false,
+        "reason": "special_open",
+        "slots": [
+          {
+            "time": "10:00",
+            "available": true
+          },
+          {
+            "time": "10:30",
+            "available": true
+          },
+          {
+            "time": "11:00",
+            "available": true
+          },
+          {
+            "time": "11:30",
+            "available": true
+          },
+          {
+            "time": "12:00",
+            "available": true
+          },
+          {
+            "time": "12:30",
+            "available": true
+          }
+        ]
+      }
+    },
+    {
+      "name": "calendar_temporary_closed",
+      "ok": true,
+      "detail": {
+        "ok": true,
+        "date": "2026-09-07",
+        "closed": true,
+        "reason": "temporary_closed",
+        "slots": []
+      }
+    },
+    {
+      "name": "demo_prepare_guarded",
+      "ok": true,
+      "detail": {
+        "status": 200,
+        "data": {
+          "ok": true,
+          "message": "営業用デモデータを準備しました",
+          "demo": {
+            "booking_code": "DEMO-HK-001",
+            "booking_date": "2026-08-24",
+            "staff_id": "091c0db5-5117-4ba5-bb5a-e680dca3eb06",
+            "staff_name": "佐藤 健",
+            "customer_name": "清掃 花子",
+            "customer_phone": "090-1111-2401",
+            "recurring_contract_code": "DEMO-HK-CON-001"
+          },
+          "health": {
+            "ok": true,
+            "service": "DPRO House Cleaning & Housekeeping LINE API",
+            "version": "HOUSEKEEP-8-R1-WORKER-SYSTEM-CHECK-FINAL-20260717",
+            "time": "2026-08-24T02:04:23.740Z",
+            "jst_date": "2026-08-24",
+            "database": {
+              "ok": true,
+              "company_code": "dpro_housekeep_demo",
+              "company_name": "DPROハウスクリーニング・家事代行",
+              "subtitle": "予約・見積り・定期訪問・作業報告をLINEで一元管理",
+              "timezone": "Asia/Tokyo",
+              "is_demo": true,
+              "production_guard": true,
+              "default_slot_minutes": 30,
+              "counts": {
+                "staff": 3,
+                "services": 9,
+                "customers": 2,
+                "bookings": 1,
+                "active_contracts": 1,
+                "open_inquiries": 1,
+                "job_photos": 0
+              }
+            },
+            "features": {
+              "line_returning_customer": true,
+              "phone_normalization": true,
+              "thirty_minute_slots": true,
+              "past_datetime_guard": true,
+              "staff_overlap_guard": true,
+              "recurring_contracts": true,
+              "estimate_management": true,
+              "work_checklists": true,
+              "private_job_photos": true,
+              "key_handling": true,
+              "staff_field_screen": true,
+              "staff_progress_updates": true,
+              "customer_visible_photo_guard": true,
+              "owner_contract_management": true,
+              "recurring_booking_generation": true,
+              "owner_settings_management": true,
+              "service_staff_editing": true,
+              "demo_prepare": true,
+              "system_check_ready": true,
+              "operational_system_check": true,
+              "static_frontend_check": true,
+              "admin_guard_check": true
+            },
+            "storage_bucket": "housekeep-job-photos"
+          }
+        }
+      }
+    },
+    {
+      "name": "staff_list",
+      "ok": true,
+      "detail": {
+        "status": 200,
+        "count": 3,
+        "staff": {
+          "id": "091c0db5-5117-4ba5-bb5a-e680dca3eb06",
+          "role": "staff"
+        },
+        "other": {
+          "id": "eadc7b27-de30-40a3-9b54-94b4d6ce06a3",
+          "role": "owner"
+        }
+      }
+    },
+    {
+      "name": "staff_session_issue",
+      "ok": true,
+      "detail": {
+        "status": 200,
+        "staff": {
+          "id": "091c0db5-5117-4ba5-bb5a-e680dca3eb06",
+          "staff_code": "ST-002",
+          "name": "佐藤 健",
+          "role": "staff"
+        },
+        "capabilities": [
+          "jobs_read",
+          "job_detail",
+          "status_update",
+          "checklist_update",
+          "note_update",
+          "photo_upload"
+        ]
+      }
+    },
+    {
+      "name": "staff_session_capability",
+      "ok": true,
+      "detail": {
+        "ok": true,
+        "staff": {
+          "id": "091c0db5-5117-4ba5-bb5a-e680dca3eb06",
+          "staff_code": "ST-002",
+          "name": "佐藤 健",
+          "role": "staff"
+        },
+        "capabilities": [
+          "jobs_read",
+          "job_detail",
+          "status_update",
+          "checklist_update",
+          "note_update",
+          "photo_upload"
+        ],
+        "serverAuthority": true
+      }
+    },
+    {
+      "name": "client_staff_id_rejected",
+      "ok": true,
+      "detail": {
+        "status": 403,
+        "data": {
+          "ok": false,
+          "error": "client staff_id is not authoritative"
+        }
+      }
+    },
+    {
+      "name": "staff_jobs_server_authority",
+      "ok": true,
+      "detail": {
+        "status": 200,
+        "count": 1
+      }
+    },
+    {
+      "name": "staff_public_photo_permission",
+      "ok": true,
+      "detail": {
+        "status": 403,
+        "data": {
+          "ok": false,
+          "error": "顧客公開写真の権限がありません"
+        }
+      }
+    },
+    {
+      "name": "staff_session_revoke",
+      "ok": true,
+      "detail": {
+        "ok": true,
+        "revoked": true
+      }
+    },
+    {
+      "name": "revoked_session_rejected",
+      "ok": true,
+      "detail": {
+        "status": 401,
+        "data": {
+          "ok": false,
+          "error": "スタッフセッションが無効です"
+        }
+      }
+    },
+    {
+      "name": "cors_evil_origin_rejected",
+      "ok": true,
+      "detail": {
+        "status": 403,
+        "allowOrigin": null
+      }
+    },
+    {
+      "name": "public_live_demo",
+      "ok": true,
+      "detail": {
+        "status": 200,
+        "url": "https://dpromstk2000-lab.github.io/dpro-housekeep-line-liff/?demo=1",
+        "contentType": "text/html; charset=utf-8"
+      }
+    },
+    {
+      "name": "public_demo_guide",
+      "ok": true,
+      "detail": {
+        "status": 200,
+        "url": "https://dpromstk2000-lab.github.io/dpro-housekeep-line-liff/demo-guide.html",
+        "contentType": "text/html; charset=utf-8"
+      }
+    },
+    {
+      "name": "public_product_site",
+      "ok": true,
+      "detail": {
+        "status": 200,
+        "url": "https://dpromstk2000-lab.github.io/dpro-line-systems-site/systems/housekeep.html",
+        "contentType": "text/html; charset=utf-8"
+      }
+    },
+    {
+      "name": "public_lp",
+      "ok": true,
+      "detail": {
+        "status": 200,
+        "url": "https://dpromstk2000-lab.github.io/dpro-line-systems-site/lp-housekeep.html",
+        "contentType": "text/html; charset=utf-8"
+      }
+    },
+    {
+      "name": "public_a4_html",
+      "ok": true,
+      "detail": {
+        "status": 200,
+        "url": "https://dpromstk2000-lab.github.io/dpro-line-systems-site/flyer-housekeep.html",
+        "contentType": "text/html; charset=utf-8"
+      }
+    },
+    {
+      "name": "public_a4_pdf",
+      "ok": true,
+      "detail": {
+        "status": 200,
+        "url": "https://dpromstk2000-lab.github.io/dpro-line-systems-site/flyer-housekeep.pdf",
+        "contentType": "application/pdf"
+      }
+    },
+    {
+      "name": "public_official_site",
+      "ok": true,
+      "detail": {
+        "status": 200,
+        "url": "https://dpro-shop.com/",
+        "contentType": "text/html; charset=utf-8"
+      }
+    }
+  ]
+}
