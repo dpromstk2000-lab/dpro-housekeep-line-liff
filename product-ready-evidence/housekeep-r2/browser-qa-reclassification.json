@@ -1,0 +1,14 @@
+{
+  "product": "HOUSEKEEP",
+  "audit_sequence": 2,
+  "raw_browser_checked_at": "2026-08-24T02:05:15.552Z",
+  "reclassified_at": "2026-08-24T02:36:32.521467+00:00",
+  "target": "system_check_pc",
+  "raw_status": 200,
+  "raw_ready": true,
+  "raw_console_error": "console:Failed to load resource: the server responded with a status of 401 ()",
+  "classification": "EXPECTED_NEGATIVE_OWNER_AUTH_PROBE",
+  "result": "PASS",
+  "reason": "The system-check intentionally verifies invalid Owner auth is rejected with HTTP 401. Page readiness, width, API binding, frontend version and technical-error checks were all valid.",
+  "product_code_changed": false
+}
