@@ -116,7 +116,10 @@ jobs:
                   if name == 'tutorial-start':
                       assert 'id="guideStart"' in text
                   if name == 'guide-center':
-                      assert 'id="guideCenter"' in text
+                      # R4 Guide Center is created dynamically by JS:
+                      # const section = document.createElement('section');
+                      # section.id = 'guideCenter';
+                      assert "section.id = 'guideCenter'" in text
               resource_http[name] = {
                   'url': url,
                   'status': status,
