@@ -62,6 +62,19 @@ jobs:
             if clear:
               d.execute_script("localStorage.removeItem('dpro_tutorial_housekeep_v1'); DPROHousekeepGuideCenter.sync()")
           def state(): return d.execute_script('return DPROHousekeepTutorial.state()')
+          def safe_click(sel):
+            e=wait.until(lambda x:x.find_element(By.CSS_SELECTOR,sel))
+            d.execute_script("arguments[0].scrollIntoView({block:'center',inline:'nearest',behavior:'instant'});",e)
+            time.sleep(.12)
+            wait.until(lambda x:x.execute_script("""
+              const e=arguments[0],r=e.getBoundingClientRect();
+              const x=Math.max(0,Math.min(innerWidth-1,r.left+r.width/2));
+              const y=Math.max(0,Math.min(innerHeight-1,r.top+r.height/2));
+              const top=document.elementFromPoint(x,y);
+              return !!top && (top===e || e.contains(top));
+            """,e))
+            e.click()
+            return e
           def collect_perf():
             req=[]
             for item in d.get_log('performance'):
@@ -114,7 +127,7 @@ jobs:
 
           # Start -> Step1.
           metrics(1440,1000); open_guide(True)
-          d.find_element(By.CSS_SELECTOR,'#guideStart').click()
+          safe_click('#guideStart')
           wait.until(lambda x:x.execute_script("return DPROHousekeepTutorial.state().active && DPROHousekeepTutorial.state().step===0 && location.pathname.endsWith('/demo-guide.html')"))
           OUT['controls']['start']=state(); assert state()['step']==0 and state()['active']
 
@@ -127,14 +140,14 @@ jobs:
           d.find_element(By.CSS_SELECTOR,'.dpro-close').click()
           assert state()['step']==2 and not state()['active']
           open_guide(False)
-          d.find_element(By.CSS_SELECTOR,'#guideResume').click()
+          safe_click('#guideResume')
           wait.until(lambda x:x.current_url.endswith('index.html?demo=1'))
           wait.until(lambda x:x.execute_script('return DPROHousekeepTutorial.state().step===2 && DPROHousekeepTutorial.state().active'))
           OUT['controls']['resume']=state(); assert state()['step']==2 and state()['active']
 
           # Skip -> return -> Replay -> Step1.
           d.find_element(By.CSS_SELECTOR,'.dpro-skip').click(); assert state()['completed'] and state()['skipped']
-          open_guide(False); d.find_element(By.CSS_SELECTOR,'#guideReplay').click()
+          open_guide(False); safe_click('#guideReplay')
           wait.until(lambda x:x.execute_script('return DPROHousekeepTutorial.state().step===0 && DPROHousekeepTutorial.state().active'))
           OUT['controls']['replay']=state(); assert state()['step']==0 and state()['active']
           d.find_element(By.CSS_SELECTOR,'.dpro-close').click()
