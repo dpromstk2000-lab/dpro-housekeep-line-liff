@@ -180,6 +180,9 @@ jobs:
           open_guide(False); safe_click('#guideReplay')
           tutorial_ready(0,'demo-guide.html')
           OUT['controls']['replay']=state(); assert state()['step']==0 and state()['active']
+          active_keys=d.execute_script("return Object.keys(localStorage).filter(k=>k.includes('guide')||k.includes('tutorial'))")
+          assert active_keys==['dpro_tutorial_housekeep_v1'], active_keys
+          OUT['controls']['authoritative_storage_key']=active_keys
           safe_click('.dpro-close')
 
           # Keyboard focus on Guide controls at 390.
@@ -202,11 +205,13 @@ jobs:
           page_errors=d.execute_script('return window.__dproQaErrors||[]')
           bad_page=[e for e in page_errors if 'tutorial.js' in str(e.get('filename','')) or 'demo-guide.html' in str(e.get('filename','')) or 'DPROHousekeep' in str(e.get('message',''))]
           guide_keys=d.execute_script("return Object.keys(localStorage).filter(k=>k.includes('guide')||k.includes('tutorial'))")
-          assert guide_keys.count('dpro_tutorial_housekeep_v1')==1 and all(k=='dpro_tutorial_housekeep_v1' for k in guide_keys), guide_keys
+          assert all(k=='dpro_tutorial_housekeep_v1' for k in guide_keys), guide_keys
+          OUT['controls']['post_clear_storage_keys']=guide_keys
           OUT['network']={'unsafe_write_count':len(unsafe),'unsafe_write_requests':unsafe}
           OUT['errors']={'console':bad_console,'page':bad_page}
           OUT['business_mutation']=0 if not unsafe else 'NOT_ZERO'
           OUT['product_regression']=0
+          OUT['second_state_machine']=0
           assert len(OUT['viewports'])==4
           assert all(v['guideCount']==10 for v in OUT['viewports'])
           assert all(v['overflow']==0 for v in OUT['viewports'] if v['width'] in (390,320))
