@@ -1,0 +1,210 @@
+name: HOUSEKEEP R6 Product Site Build
+
+on:
+  push:
+    paths:
+      - '.github/workflows/housekeep-r6-product-site-build.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  r6-product-site-build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      PRODUCT_REPO: https://github.com/dpromstk2000-lab/dpro-line-systems-site.git
+      TUTORIAL_START: https://dpromstk2000-lab.github.io/dpro-housekeep-line-liff/demo-guide.html#guideStart
+      GUIDE_CENTER: https://dpromstk2000-lab.github.io/dpro-housekeep-line-liff/demo-guide.html#guideCenter
+      QUICK_PDF: https://dpromstk2000-lab.github.io/dpro-housekeep-line-liff/DPRO_TUTORIAL_HOUSEKEEP_QUICK_START_V1.0.pdf
+      DETAILED_PDF: https://dpromstk2000-lab.github.io/dpro-housekeep-line-liff/DPRO_TUTORIAL_HOUSEKEEP_DETAILED_MANUAL_V1.0.pdf
+      QUICK_SHA256: d97070bb5e5380edcb461feac3c652a971ba937e8a23f97921e332becc4cbdbc
+      DETAILED_SHA256: 43ddf452b0667b0972bfb298c98c2a4e315c38b12da9f54eb679f9795e45c34c
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Fetch newest Product Site main
+        shell: bash
+        run: |
+          set -euo pipefail
+          git clone --depth=1 --branch main "$PRODUCT_REPO" /tmp/product-site
+          cd /tmp/product-site
+          echo "PRODUCT_SITE_HEAD=$(git rev-parse HEAD)" >> "$GITHUB_ENV"
+          echo "PRODUCT_SITE_TREE=$(git rev-parse 'HEAD^{tree}')" >> "$GITHUB_ENV"
+          git status --porcelain
+          test -f systems/housekeep.html
+          test -f systems/housekeep.html.txt
+          cmp -s systems/housekeep.html systems/housekeep.html.txt
+
+      - name: Verify four HOUSEKEEP resources by real HTTP before R6 write
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          curl -fL --retry 3 --retry-delay 2 \
+            'https://dpromstk2000-lab.github.io/dpro-housekeep-line-liff/demo-guide.html' \
+            -o /tmp/demo-guide.html
+
+          grep -q 'HOUSEKEEP-GUIDE-R4-20260829' /tmp/demo-guide.html
+          grep -q 'guideStart' /tmp/demo-guide.html
+          grep -q 'guideCenter' /tmp/demo-guide.html
+          grep -q 'tutorial.js?v=R3-20260829' /tmp/demo-guide.html
+
+          curl -fL --retry 3 --retry-delay 2 "$QUICK_PDF" -o /tmp/quick.pdf
+          curl -fL --retry 3 --retry-delay 2 "$DETAILED_PDF" -o /tmp/detailed.pdf
+
+          test "$(head -c 4 /tmp/quick.pdf)" = '%PDF'
+          test "$(head -c 4 /tmp/detailed.pdf)" = '%PDF'
+
+          echo "$QUICK_SHA256  /tmp/quick.pdf" | sha256sum -c -
+          echo "$DETAILED_SHA256  /tmp/detailed.pdf" | sha256sum -c -
+
+          printf '%s\n' \
+            "TUTORIAL_START=$TUTORIAL_START" \
+            "GUIDE_CENTER=$GUIDE_CENTER" \
+            "QUICK_PDF=$QUICK_PDF" \
+            "DETAILED_PDF=$DETAILED_PDF" \
+            > /tmp/r6-resource-preflight.txt
+
+      - name: Build target-only Product Site files
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd /tmp/product-site
+
+          python - <<'PY'
+          from pathlib import Path
+          import hashlib, json, os, difflib, zipfile
+
+          root = Path('/tmp/product-site')
+          html_path = root / 'systems/housekeep.html'
+          txt_path = root / 'systems/housekeep.html.txt'
+
+          before = html_path.read_bytes()
+          before_txt = txt_path.read_bytes()
+          assert before == before_txt, 'HTML/TEXT prewrite mirror mismatch'
+          s = before.decode('utf-8')
+
+          assert 'data-housekeep-r6=' not in s, 'R6 marker already exists; stop to avoid duplicate integration'
+
+          old = '<div class="ps-doclinks" aria-label="関連資料"><a href="../lp-housekeep.html">詳しい紹介を見る</a><a href="../flyer-housekeep.html">A4チラシを見る</a><a href="../flyer-housekeep.pdf">PDF資料を開く</a></div>'
+
+          new = (
+            '<div class="ps-doclinks" aria-label="関連資料" data-housekeep-r6="HOUSEKEEP-R6-20260829">'
+            '<a data-r6-resource="tutorial-start" href="https://dpromstk2000-lab.github.io/dpro-housekeep-line-liff/demo-guide.html#guideStart" target="_blank" rel="noopener">操作チュートリアルを開始</a>'
+            '<a data-r6-resource="guide-center" href="https://dpromstk2000-lab.github.io/dpro-housekeep-line-liff/demo-guide.html#guideCenter" target="_blank" rel="noopener">Guide Centerを開く</a>'
+            '<a data-r6-resource="quick-pdf" href="https://dpromstk2000-lab.github.io/dpro-housekeep-line-liff/DPRO_TUTORIAL_HOUSEKEEP_QUICK_START_V1.0.pdf" target="_blank" rel="noopener">クイックスタートPDF</a>'
+            '<a data-r6-resource="detailed-pdf" href="https://dpromstk2000-lab.github.io/dpro-housekeep-line-liff/DPRO_TUTORIAL_HOUSEKEEP_DETAILED_MANUAL_V1.0.pdf" target="_blank" rel="noopener">詳細マニュアルPDF</a>'
+            '<a href="../lp-housekeep.html">詳しい紹介を見る</a>'
+            '<a href="../flyer-housekeep.html">A4チラシを見る</a>'
+            '<a href="../flyer-housekeep.pdf">PDF資料を開く</a>'
+            '</div>'
+          )
+
+          assert s.count(old) == 1, f'Expected exactly one related-materials block, found {s.count(old)}'
+          after_s = s.replace(old, new, 1)
+          after = after_s.encode('utf-8')
+
+          # Preserve required existing product-site content.
+          preserved = [
+            '月額5,500円（税込）',
+            'https://lin.ee/YxJGXV6D',
+            'https://dpromstk2000-lab.github.io/dpro-housekeep-line-liff/?demo=1',
+            '../lp-housekeep.html',
+            '../flyer-housekeep.html',
+            '../flyer-housekeep.pdf',
+            '../systems-data.js',
+            '../dpro-v3.js',
+            'data-system-code="HOUSEKEEP"',
+            'data-master-section="12"',
+          ]
+          for marker in preserved:
+            assert marker in s and marker in after_s, marker
+
+          resources = {
+            'tutorial_start': 'https://dpromstk2000-lab.github.io/dpro-housekeep-line-liff/demo-guide.html#guideStart',
+            'guide_center': 'https://dpromstk2000-lab.github.io/dpro-housekeep-line-liff/demo-guide.html#guideCenter',
+            'quick_pdf': 'https://dpromstk2000-lab.github.io/dpro-housekeep-line-liff/DPRO_TUTORIAL_HOUSEKEEP_QUICK_START_V1.0.pdf',
+            'detailed_pdf': 'https://dpromstk2000-lab.github.io/dpro-housekeep-line-liff/DPRO_TUTORIAL_HOUSEKEEP_DETAILED_MANUAL_V1.0.pdf',
+          }
+          for url in resources.values():
+            assert after_s.count(url) == 1, url
+
+          html_path.write_bytes(after)
+          txt_path.write_bytes(after)
+          assert html_path.read_bytes() == txt_path.read_bytes()
+
+          # Exact target-only local diff.
+          import subprocess
+          changed = subprocess.check_output(
+              ['git','diff','--name-only'], cwd=root, text=True
+          ).splitlines()
+          assert changed == ['systems/housekeep.html', 'systems/housekeep.html.txt'], changed
+
+          # Diff must only replace the related-material block.
+          diff = subprocess.check_output(
+              ['git','diff','--','systems/housekeep.html'], cwd=root, text=True
+          )
+          assert 'data-housekeep-r6="HOUSEKEEP-R6-20260829"' in diff
+          assert '操作チュートリアルを開始' in diff
+          assert 'クイックスタートPDF' in diff
+          assert '詳細マニュアルPDF' in diff
+
+          evidence = {
+            'system': 'HOUSEKEEP',
+            'batch': '09',
+            'stage': 'R6_BUILD',
+            'product_site_head_prewrite': os.environ['PRODUCT_SITE_HEAD'],
+            'product_site_tree_prewrite': os.environ['PRODUCT_SITE_TREE'],
+            'prewrite_html_sha256': hashlib.sha256(before).hexdigest(),
+            'prewrite_txt_sha256': hashlib.sha256(before_txt).hexdigest(),
+            'postbuild_html_sha256': hashlib.sha256(after).hexdigest(),
+            'postbuild_txt_sha256': hashlib.sha256(after).hexdigest(),
+            'mirror_byte_identical': True,
+            'changed_files': changed,
+            'resources': resources,
+            'resource_preflight_real_http': 'PASS',
+            'quick_public_sha256': os.environ['QUICK_SHA256'],
+            'detailed_public_sha256': os.environ['DETAILED_SHA256'],
+            'product_site_rollback': 0,
+            'forward_only_basis': 'newest Product Site main cloned immediately before local build',
+            'business_mutation': 0,
+            'verdict': 'PASS'
+          }
+
+          out = Path(os.environ['GITHUB_WORKSPACE']) / 'r6-build-output'
+          out.mkdir(parents=True, exist_ok=True)
+          (out / 'R6_PRODUCT_SITE_PREWRITE_AND_BUILD.json').write_text(
+              json.dumps(evidence, ensure_ascii=False, indent=2), encoding='utf-8'
+          )
+          (out / 'R6_PRODUCT_SITE_DIFF.patch').write_text(diff, encoding='utf-8')
+
+          zip_path = out / 'DPRO_TUTORIAL_BATCH09_HOUSEKEEP_R6_PRODUCT_SITE_SYSTEMS_UPLOAD_V1.0_20260829.zip'
+          with zipfile.ZipFile(zip_path, 'w', zipfile.ZIP_DEFLATED) as z:
+              z.write(html_path, arcname='housekeep.html')
+              z.write(txt_path, arcname='housekeep.html.txt')
+
+          with zipfile.ZipFile(zip_path) as z:
+              assert z.namelist() == ['housekeep.html', 'housekeep.html.txt']
+              assert z.testzip() is None
+
+          print(json.dumps({
+            'verdict': 'PASS',
+            'prewrite_head': evidence['product_site_head_prewrite'],
+            'prewrite_tree': evidence['product_site_tree_prewrite'],
+            'changed_files': changed,
+            'mirror_byte_identical': True,
+            'resource_preflight_real_http': 'PASS',
+            'business_mutation': 0,
+            'product_site_rollback': 0
+          }, ensure_ascii=False))
+          PY
+
+      - name: Upload R6 target-only build artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: housekeep-r6-product-site-build
+          path: r6-build-output/
+          if-no-files-found: error
