@@ -163,7 +163,15 @@ jobs:
               unsafe_seen = []
 
               for label, width, height in VIEWPORTS:
-                  d.set_window_size(width, height)
+                  # Headless Chrome on hosted runners may ignore set_window_size()
+                  # after the first navigation. Use CDP viewport emulation so the
+                  # measured CSS viewport is exactly the required R6 width.
+                  d.execute_cdp_cmd('Emulation.setDeviceMetricsOverride', {
+                      'width': width,
+                      'height': height,
+                      'deviceScaleFactor': 1,
+                      'mobile': False
+                  })
                   d.get(PRODUCT_URL + f'?r6qa={int(time.time()*1000)}')
                   time.sleep(1.2)
 
@@ -269,7 +277,12 @@ jobs:
                   })
 
               # Tutorial page safety regression check; no product controls are activated.
-              d.set_window_size(390, 844)
+              d.execute_cdp_cmd('Emulation.setDeviceMetricsOverride', {
+                  'width': 390,
+                  'height': 844,
+                  'deviceScaleFactor': 1,
+                  'mobile': False
+              })
               d.get(GUIDE_URL + f'?r6qa={int(time.time()*1000)}')
               time.sleep(1.0)
               source = d.page_source
