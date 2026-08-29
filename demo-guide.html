@@ -246,5 +246,148 @@ document.getElementById("flowGrid").innerHTML = CONFIG.journey.map(x => `
 `).join("");
 </script>
 <script src="tutorial.js?v=R3-20260829" defer></script>
+<script>
+(() => {
+  'use strict';
+  const GUIDE_VERSION = 'HOUSEKEEP-GUIDE-R4-20260829';
+  const EXPECTED_TUTORIAL_VERSION = 'HOUSEKEEP-TUTORIAL-R3-20260829';
+  const EXPECTED_STORE_KEY = 'dpro_tutorial_housekeep_v1';
+
+  const escapeHtml = (value) => String(value ?? '').replace(/[&<>"']/g, (ch) => ({
+    '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
+  })[ch]);
+
+  function addGuideStyles() {
+    if (document.getElementById('dpro-guide-center-style')) return;
+    const style = document.createElement('style');
+    style.id = 'dpro-guide-center-style';
+    style.textContent = `
+      .dpro-guide-center{margin-top:32px;padding:22px;border:1px solid var(--line);border-radius:22px;background:#fff;box-shadow:var(--shadow)}
+      .dpro-guide-center__head{display:flex;align-items:flex-end;justify-content:space-between;gap:16px;flex-wrap:wrap}
+      .dpro-guide-center__head small{display:block;color:var(--brand);font-size:10px;font-weight:1000;letter-spacing:.12em}
+      .dpro-guide-center__head h2{margin:5px 0 0;font-size:clamp(23px,4vw,34px)}
+      .dpro-guide-center__copy{max-width:780px;margin:8px 0 0;color:var(--muted);font-size:13px}
+      .dpro-guide-controls{display:flex;gap:8px;flex-wrap:wrap;margin-top:16px}
+      .dpro-guide-controls button{min-height:44px;padding:9px 14px;border:1px solid var(--line);border-radius:12px;background:#fff;color:var(--deep);font:900 12px/1.2 system-ui,-apple-system,"Segoe UI","Noto Sans JP",sans-serif;cursor:pointer}
+      .dpro-guide-controls .dpro-guide-start{border-color:var(--deep);background:var(--deep);color:#fff}
+      .dpro-guide-controls button:focus-visible,.dpro-guide-step:focus-visible{outline:3px solid #ffbf47;outline-offset:3px}
+      .dpro-guide-state{margin:11px 0 0;padding:10px 12px;border-radius:12px;background:var(--soft);color:var(--deep);font-size:11px;font-weight:850}
+      .dpro-guide-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin-top:16px}
+      .dpro-guide-step{min-width:0;padding:15px;border:1px solid var(--line);border-radius:15px;background:#fff}
+      .dpro-guide-step__top{display:flex;align-items:center;justify-content:space-between;gap:10px}
+      .dpro-guide-step__id{color:var(--brand);font-size:10px;font-weight:1000;letter-spacing:.08em}
+      .dpro-guide-step__num{display:grid;place-items:center;min-width:30px;height:30px;border-radius:10px;background:var(--soft);color:var(--deep);font-size:11px;font-weight:1000}
+      .dpro-guide-step h3{margin:8px 0 0;font-size:17px;line-height:1.42}
+      .dpro-guide-step p{margin:7px 0 0;color:var(--muted);font-size:11px}
+      .dpro-guide-meta{display:grid;gap:5px;margin-top:10px;padding-top:10px;border-top:1px dashed var(--line);font-size:9px;color:#617776;overflow-wrap:anywhere}
+      .dpro-guide-meta b{color:var(--deep)}
+      @media(max-width:760px){.dpro-guide-center{padding:17px 14px}.dpro-guide-grid{grid-template-columns:1fr}}
+      @media(max-width:420px){.dpro-guide-controls{display:grid;grid-template-columns:1fr}.dpro-guide-controls button{width:100%}}
+    `;
+    document.head.appendChild(style);
+  }
+
+  function mountGuideCenter(T) {
+    if (document.getElementById('guideCenter')) return;
+    if (!T || T.version !== EXPECTED_TUTORIAL_VERSION || T.storeKey !== EXPECTED_STORE_KEY) return;
+    const steps = Array.from(T.steps || []);
+    if (steps.length !== 10) return;
+
+    addGuideStyles();
+    const section = document.createElement('section');
+    section.id = 'guideCenter';
+    section.className = 'dpro-guide-center';
+    section.dataset.guideVersion = GUIDE_VERSION;
+    section.dataset.tutorialVersion = T.version;
+    section.dataset.storeKey = T.storeKey;
+    section.innerHTML = `
+      <div class="dpro-guide-center__head">
+        <div>
+          <small>GUIDE CENTER / FIRST10</small>
+          <h2>操作ガイド 10ステップ</h2>
+          <p class="dpro-guide-center__copy">公開チュートリアルと同じ10ステップを、同じ順番・同じ対象で確認できます。ガイド専用の別進捗は作らず、Start / Resume / Replay はチュートリアル本体の状態をそのまま使用します。</p>
+        </div>
+      </div>
+      <div class="dpro-guide-controls" aria-label="操作ガイド コントロール">
+        <button type="button" class="dpro-guide-start" id="guideStart">Start</button>
+        <button type="button" id="guideResume">Resume</button>
+        <button type="button" id="guideReplay">Replay</button>
+      </div>
+      <p class="dpro-guide-state" id="guideState" aria-live="polite"></p>
+      <div class="dpro-guide-grid" id="guideStepGrid"></div>`;
+
+    const footer = document.getElementById('footer');
+    footer.parentNode.insertBefore(section, footer);
+    const grid = document.getElementById('guideStepGrid');
+    grid.innerHTML = steps.map((step, index) => `
+      <article class="dpro-guide-step" tabindex="0"
+        data-guide-index="${index}"
+        data-step-id="${escapeHtml(step.id)}"
+        data-route="${escapeHtml(step.url)}"
+        data-primary="${escapeHtml(step.primary)}"
+        data-fallbacks="${escapeHtml(JSON.stringify(Array.from(step.fallbacks || [])))}">
+        <div class="dpro-guide-step__top">
+          <span class="dpro-guide-step__id">${escapeHtml(step.id)}</span>
+          <span class="dpro-guide-step__num">${index + 1}/10</span>
+        </div>
+        <h3>${escapeHtml(step.title)}</h3>
+        <p>${escapeHtml(step.text)}</p>
+        <div class="dpro-guide-meta">
+          <span><b>URL</b> ${escapeHtml(step.url)}</span>
+          <span><b>TARGET</b> ${escapeHtml(step.primary)}</span>
+          <span><b>FALLBACK</b> ${escapeHtml(Array.from(step.fallbacks || []).join(' → '))}</span>
+        </div>
+      </article>`).join('');
+
+    const stateNode = document.getElementById('guideState');
+    const sync = () => {
+      const state = T.state();
+      const hasStored = localStorage.getItem(T.storeKey) !== null;
+      let label = '未開始';
+      if (state.completed && state.skipped) label = `Skip済み · STEP ${state.step + 1}/10`;
+      else if (state.completed) label = '完了済み · Replayできます';
+      else if (state.active) label = `実行中 · STEP ${state.step + 1}/10`;
+      else if (hasStored) label = `中断中 · Resume STEP ${state.step + 1}/10`;
+      stateNode.textContent = `状態：${label}｜共通進捗キー：${T.storeKey}`;
+      document.getElementById('guideResume').textContent = hasStored && !state.completed ? `Resume · STEP ${state.step + 1}` : 'Resume';
+    };
+
+    document.getElementById('guideStart').addEventListener('click', () => T.start());
+    document.getElementById('guideResume').addEventListener('click', () => T.resume());
+    document.getElementById('guideReplay').addEventListener('click', () => T.replay());
+    document.getElementById('guideStart').addEventListener('focus', sync);
+    document.getElementById('guideResume').addEventListener('focus', sync);
+    document.getElementById('guideReplay').addEventListener('focus', sync);
+    window.addEventListener('storage', (event) => { if (event.key === T.storeKey) sync(); });
+    document.addEventListener('visibilitychange', () => { if (!document.hidden) sync(); });
+    sync();
+
+    window.DPROHousekeepGuideCenter = Object.freeze({
+      version: GUIDE_VERSION,
+      tutorialVersion: T.version,
+      storeKey: T.storeKey,
+      count: steps.length,
+      sync
+    });
+  }
+
+  function bootGuide() {
+    let tries = 0;
+    const timer = setInterval(() => {
+      tries += 1;
+      const T = window.DPROHousekeepTutorial;
+      if (T) {
+        clearInterval(timer);
+        mountGuideCenter(T);
+      } else if (tries >= 100) {
+        clearInterval(timer);
+      }
+    }, 50);
+  }
+
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', bootGuide, { once: true });
+  else bootGuide();
+})();
+</script>
 </body>
 </html>
