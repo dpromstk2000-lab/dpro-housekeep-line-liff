@@ -1,0 +1,605 @@
+name: HOUSEKEEP R5 Manual Build QA
+
+on:
+  push:
+    paths:
+      - '.github/workflows/housekeep-r5-manual-build-qa.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  r5-manual-build-qa:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      BASE_URL: https://dpromstk2000-lab.github.io/dpro-housekeep-line-liff/
+      GUIDE_URL: https://dpromstk2000-lab.github.io/dpro-housekeep-line-liff/demo-guide.html
+      EXPECTED_TUTORIAL_VERSION: HOUSEKEEP-TUTORIAL-R3-20260829
+      EXPECTED_GUIDE_VERSION: HOUSEKEEP-GUIDE-R4-20260829
+      QUICK_NAME: DPRO_TUTORIAL_HOUSEKEEP_QUICK_START_V1.0.pdf
+      DETAILED_NAME: DPRO_TUTORIAL_HOUSEKEEP_DETAILED_MANUAL_V1.0.pdf
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install manual build and QA dependencies
+        shell: bash
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y poppler-utils zbar-tools fonts-noto-cjk
+          python -m pip install --disable-pip-version-check \
+            selenium==4.35.0 qrcode[pil]==8.2 Pillow==11.3.0 pypdf==5.9.0
+
+      - name: Build manuals from current public LIVE and run exact R5 QA
+        shell: bash
+        run: |
+          cat > /tmp/housekeep_r5_manual_build_qa.py <<'PY'
+          import os, json, time, base64, subprocess, re, html, shutil
+          from pathlib import Path
+          from selenium import webdriver
+          from selenium.webdriver.chrome.options import Options
+          from selenium.webdriver.common.by import By
+          from selenium.webdriver.support.ui import WebDriverWait
+          import qrcode
+          from PIL import Image, ImageStat, ImageDraw
+          from pypdf import PdfReader
+
+          BASE = os.environ['BASE_URL']
+          GUIDE_URL = os.environ['GUIDE_URL']
+          TV = os.environ['EXPECTED_TUTORIAL_VERSION']
+          GV = os.environ['EXPECTED_GUIDE_VERSION']
+          QUICK = os.environ['QUICK_NAME']
+          DETAILED = os.environ['DETAILED_NAME']
+
+          ROOT = Path.cwd()
+          BUILD = ROOT / 'r5-manual-build'
+          SRC = BUILD / 'source-screenshots'
+          REND = BUILD / 'renders'
+          OUT = BUILD / 'output'
+          for p in (SRC, REND, OUT):
+              p.mkdir(parents=True, exist_ok=True)
+
+          report = {
+              'stage': 'R5',
+              'system': 'HOUSEKEEP',
+              'source': {
+                  'repo_head': subprocess.check_output(['git','rev-parse','HEAD'], text=True).strip(),
+                  'repo_tree': subprocess.check_output(['git','rev-parse','HEAD^{tree}'], text=True).strip(),
+                  'base_url': BASE,
+                  'guide_url': GUIDE_URL,
+                  'tutorial_version': TV,
+                  'guide_version': GV,
+              },
+              'first10_count': 0,
+              'guide_count': 0,
+              'screenshots': [],
+              'pdfs': {},
+              'qr': {},
+              'network': {},
+              'privacy_safety': {},
+              'visual_precheck': {},
+              'business_mutation': 0,
+              'unsafe_write_count': 0,
+              'verdict': 'HOLD'
+          }
+
+          opts = Options()
+          opts.add_argument('--headless=new')
+          opts.add_argument('--no-sandbox')
+          opts.add_argument('--disable-dev-shm-usage')
+          opts.add_argument('--disable-gpu')
+          opts.add_argument('--window-size=1440,1000')
+          opts.set_capability('goog:loggingPrefs', {'browser':'ALL','performance':'ALL'})
+          d = webdriver.Chrome(options=opts)
+          wait = WebDriverWait(d, 15)
+
+          def metrics(w, h, mobile=False):
+              d.execute_cdp_cmd('Emulation.setDeviceMetricsOverride', {
+                  'width': w, 'height': h, 'deviceScaleFactor': 1,
+                  'mobile': mobile, 'screenWidth': w, 'screenHeight': h
+              })
+              d.execute_cdp_cmd('Emulation.setTouchEmulationEnabled', {
+                  'enabled': mobile, 'maxTouchPoints': 5 if mobile else 1
+              })
+
+          def wait_ready():
+              wait.until(lambda x: x.execute_script('return document.readyState') == 'complete')
+
+          def open_guide(clear=False):
+              d.get(GUIDE_URL)
+              wait_ready()
+              end = time.time() + 20
+              while time.time() < end:
+                  ok = d.execute_script("""
+                    return !!window.DPROHousekeepTutorial &&
+                           DPROHousekeepTutorial.version === arguments[0] &&
+                           !!window.DPROHousekeepGuideCenter &&
+                           DPROHousekeepGuideCenter.version === arguments[1] &&
+                           document.querySelectorAll('.dpro-guide-step').length === 10;
+                  """, TV, GV)
+                  if ok:
+                      if clear:
+                          d.execute_script("""
+                            localStorage.removeItem('dpro_tutorial_housekeep_v1');
+                            DPROHousekeepGuideCenter.sync();
+                          """)
+                      return
+                  time.sleep(.15)
+              raise AssertionError('Current public Guide Center did not become ready')
+
+          def tutorial_ready(step_index, timeout=15):
+              end = time.time() + timeout
+              while time.time() < end:
+                  try:
+                      v = d.execute_script("""
+                        const p=document.querySelector('.dpro-tutorial');
+                        const r=p?.getBoundingClientRect();
+                        if (!window.DPROHousekeepTutorial || !p || p.hidden) return null;
+                        return {
+                          state:DPROHousekeepTutorial.state(),
+                          status:document.querySelector('.dpro-tutorial__status')?.textContent||'',
+                          rect:r?{left:r.left,top:r.top,right:r.right,bottom:r.bottom}:null,
+                          w:innerWidth,h:innerHeight
+                        };
+                      """)
+                      if v and v['state']['active'] and v['state']['step'] == step_index and f"STEP {step_index+1} / 10" in v['status']:
+                          r=v['rect']
+                          if r and r['left'] >= 7 and r['top'] >= 7 and r['right'] <= v['w']-7 and r['bottom'] <= v['h']-7:
+                              return
+                  except Exception:
+                      pass
+                  time.sleep(.1)
+              raise AssertionError(f'Tutorial did not settle at step {step_index+1}')
+
+          def png(path):
+              d.save_screenshot(str(path))
+              with Image.open(path) as im:
+                  if im.width < 300 or im.height < 300:
+                      raise AssertionError(f'Bad screenshot geometry: {path} {im.size}')
+                  stat = ImageStat.Stat(im.convert('L'))
+                  if stat.var[0] < 5:
+                      raise AssertionError(f'Likely blank screenshot: {path}')
+              report['screenshots'].append({'file': path.name, 'url': d.current_url, 'width': d.execute_script('return innerWidth'), 'height': d.execute_script('return innerHeight')})
+
+          # Wait for current public R4.
+          metrics(1440,1000,False)
+          for _ in range(30):
+              try:
+                  open_guide(True)
+                  break
+              except Exception:
+                  time.sleep(2)
+          else:
+              raise AssertionError('Current public R4 was not reachable')
+
+          runtime = d.execute_script("""
+            return {
+              tutorialVersion:DPROHousekeepTutorial.version,
+              guideVersion:DPROHousekeepGuideCenter.version,
+              steps:DPROHousekeepTutorial.steps.map(x=>({
+                id:x.id,title:x.title,url:x.url,primary:x.primary,
+                fallbacks:[...x.fallbacks],text:x.text
+              })),
+              guideCount:document.querySelectorAll('.dpro-guide-step').length
+            }
+          """)
+          assert runtime['tutorialVersion'] == TV
+          assert runtime['guideVersion'] == GV
+          assert len(runtime['steps']) == 10
+          assert runtime['guideCount'] == 10
+          report['first10_count'] = len(runtime['steps'])
+          report['guide_count'] = runtime['guideCount']
+          (BUILD/'first10-live.json').write_text(json.dumps(runtime, ensure_ascii=False, indent=2), encoding='utf-8')
+
+          # Current LIVE screenshots only. Safe pages only; no member/owner/staff data.
+          guide = d.find_element(By.CSS_SELECTOR, '#guideCenter')
+          d.execute_script("arguments[0].scrollIntoView({block:'start',behavior:'instant'});", guide)
+          time.sleep(.2)
+          guide.screenshot(str(SRC/'guide-center-current.png'))
+          with Image.open(SRC/'guide-center-current.png') as im:
+              if im.width < 600 or im.height < 250:
+                  raise AssertionError(f'Guide screenshot bad geometry: {im.size}')
+          report['screenshots'].append({'file':'guide-center-current.png','url':GUIDE_URL,'kind':'current_public_guide_center'})
+
+          d.execute_script("document.querySelector('#guideStart').click()")
+          tutorial_ready(0)
+          png(SRC/'tutorial-step1-current.png')
+
+          d.execute_script("document.querySelector('.dpro-next').click()")
+          end=time.time()+15
+          while time.time()<end:
+              if d.current_url.startswith(BASE+'index.html?demo=1'):
+                  try:
+                      tutorial_ready(1)
+                      break
+                  except Exception:
+                      pass
+              time.sleep(.15)
+          else:
+              raise AssertionError('Step2 current public demo did not become ready')
+          metrics(390,844,True)
+          time.sleep(.3)
+          tutorial_ready(1)
+          png(SRC/'tutorial-step2-mobile-current.png')
+          d.execute_script("document.querySelector('.dpro-close').click()")
+
+          d.get(BASE+'index.html?demo=1')
+          wait_ready()
+          time.sleep(.5)
+          png(SRC/'customer-demo-mobile-current.png')
+
+          # Collect network evidence from safe LIVE capture.
+          req=[]
+          for item in d.get_log('performance'):
+              try:
+                  msg=json.loads(item['message'])['message']
+                  if msg.get('method')=='Network.requestWillBeSent':
+                      r=msg['params']['request']
+                      req.append({'method':r.get('method','GET').upper(),'url':r.get('url','')})
+              except Exception:
+                  pass
+          unsafe=[r for r in req if r['method'] not in ('GET','HEAD','OPTIONS')]
+          report['network']={'request_count':len(req),'unsafe_write_requests':unsafe}
+          report['unsafe_write_count']=len(unsafe)
+          report['business_mutation']=0 if not unsafe else 'NOT_ZERO'
+          assert len(unsafe)==0, unsafe
+
+          d.quit()
+
+          # QR generated for exact current Guide Center destination.
+          qr_path = BUILD/'guide-qr.png'
+          qrcode.make(GUIDE_URL).save(qr_path)
+
+          def data_uri(path):
+              b=Path(path).read_bytes()
+              return 'data:image/png;base64,'+base64.b64encode(b).decode('ascii')
+
+          qr_uri=data_uri(qr_path)
+          guide_uri=data_uri(SRC/'guide-center-current.png')
+          step1_uri=data_uri(SRC/'tutorial-step1-current.png')
+          step2_uri=data_uri(SRC/'tutorial-step2-mobile-current.png')
+          customer_uri=data_uri(SRC/'customer-demo-mobile-current.png')
+
+          steps=runtime['steps']
+
+          base_css = """
+          @page { size: A4 portrait; margin: 0; }
+          * { box-sizing: border-box; }
+          html,body { margin:0; padding:0; font-family:"Noto Sans CJK JP","Noto Sans JP",sans-serif; color:#173b3a; background:#fff; }
+          .page { width:210mm; height:297mm; padding:12mm 13mm 11mm; page-break-after:always; position:relative; overflow:hidden; background:#fff; }
+          .page:last-child { page-break-after:auto; }
+          h1,h2,h3,p { margin-top:0; }
+          h1 { font-size:24px; line-height:1.25; margin-bottom:4mm; }
+          h2 { font-size:18px; line-height:1.3; margin-bottom:3mm; color:#17635c; }
+          h3 { font-size:13px; margin-bottom:1.5mm; }
+          p,li,td,th { font-size:10.5px; line-height:1.5; }
+          .muted { color:#617774; }
+          .eyebrow { font-size:9px; font-weight:800; letter-spacing:.12em; color:#247d73; margin-bottom:2mm; }
+          .grid3 { display:grid; grid-template-columns:repeat(3,1fr); gap:3mm; }
+          .card { border:1px solid #c9ddd9; border-radius:4mm; padding:3.3mm; background:#f9fcfb; }
+          .card strong { display:block; font-size:12px; color:#17635c; margin-bottom:1mm; }
+          .shot { display:block; width:100%; border:1px solid #c9ddd9; border-radius:3mm; object-fit:contain; background:#f5f8f7; }
+          .shot.large { max-height:84mm; }
+          .shot.medium { max-height:64mm; }
+          .shot.mobile { width:auto; max-width:66mm; max-height:88mm; margin:auto; }
+          .safe { border-left:4px solid #ffbf47; background:#fff8e7; padding:3mm 4mm; border-radius:2mm; }
+          .qrrow { position:absolute; left:13mm; right:13mm; bottom:9mm; display:flex; align-items:center; justify-content:space-between; gap:4mm; border-top:1px solid #d9e5e2; padding-top:3mm; }
+          .qrrow img { width:25mm; height:25mm; image-rendering:pixelated; }
+          .url { font-size:8.5px; word-break:break-all; color:#3c5a56; }
+          table { width:100%; border-collapse:collapse; }
+          th,td { border-bottom:1px solid #d8e6e3; padding:2.4mm 1.5mm; vertical-align:top; }
+          th { text-align:left; color:#17635c; font-size:9px; }
+          .stepno { font-weight:900; color:#247d73; white-space:nowrap; }
+          .pill { display:inline-block; border:1px solid #b8d6d0; border-radius:999px; padding:1mm 2.5mm; font-size:8.5px; margin-right:1mm; margin-bottom:1mm; }
+          .cols2 { display:grid; grid-template-columns:1fr 1fr; gap:4mm; }
+          .kbd { font-family:monospace; border:1px solid #becfcb; border-bottom-width:2px; border-radius:1.5mm; padding:.4mm 1.4mm; background:#fff; }
+          .footer { position:absolute; left:13mm; right:13mm; bottom:5mm; display:flex; justify-content:space-between; color:#78908c; font-size:7.5px; }
+          """
+
+          quick_html = f"""<!doctype html><html lang="ja"><head><meta charset="utf-8"><style>{base_css}</style></head><body>
+          <section class="page">
+            <div class="eyebrow">DPRO TUTORIAL / HOUSEKEEP / R5 QUICK START</div>
+            <h1>家事代行システム 操作チュートリアル</h1>
+            <p class="muted">公開中のGuide Centerから、First10を安全に確認するための1ページガイドです。</p>
+            <div class="grid3">
+              <div class="card"><strong>Start</strong><p>最初のSTEP 1から開始します。対象箇所を黄色の枠で案内します。</p></div>
+              <div class="card"><strong>Resume</strong><p>Close / Escで中断しても、同じSTEPから再開できます。</p></div>
+              <div class="card"><strong>Replay</strong><p>完了後はSTEP 1へ戻して、最初からやり直せます。</p></div>
+            </div>
+            <h2 style="margin-top:4mm">まずGuide Centerを開く</h2>
+            <img class="shot large" src="{guide_uri}" alt="Current public Guide Center">
+            <div class="cols2" style="margin-top:3mm">
+              <div>
+                <h3>操作のポイント</h3>
+                <p><span class="pill">Next / Back</span><span class="pill">Close / Esc</span><span class="pill">Skip</span></p>
+                <p>上部のドラッグ領域で案内パネルを移動できます。タッチ操作にも対応し、画面外へはみ出さないよう自動調整されます。</p>
+              </div>
+              <div class="safe">
+                <h3>安全に使うために</h3>
+                <p>チュートリアルは画面の場所を案内するだけです。予約の送信・変更・キャンセル、チェックリスト生成、設定変更、通知送信、ジョブ状態変更は自動実行しません。</p>
+                <p>キーボードでは <span class="kbd">Tab</span> で移動し、フォーカス枠を確認してください。</p>
+              </div>
+            </div>
+            <div class="qrrow">
+              <div><strong>現在のGuide Center</strong><div class="url">{html.escape(GUIDE_URL)}</div></div>
+              <img src="{qr_uri}" alt="Guide Center QR">
+            </div>
+            <div class="footer"><span>DPRO HOUSEKEEP QUICK START V1.0</span><span>2026-08-29</span></div>
+          </section>
+          </body></html>"""
+
+          def step_rows(subset, start_no):
+              rows=[]
+              for i,s in enumerate(subset,start_no):
+                  rows.append(
+                    "<tr>"
+                    f"<td class='stepno'>{i:02d}</td>"
+                    f"<td><strong>{html.escape(s['id'])} / {html.escape(s['title'])}</strong><br>{html.escape(s['text'])}</td>"
+                    f"<td><code>{html.escape(s['url'])}</code><br><span class='muted'>{html.escape(s['primary'])}</span></td>"
+                    "</tr>"
+                  )
+              return ''.join(rows)
+
+          detailed_html = f"""<!doctype html><html lang="ja"><head><meta charset="utf-8"><style>{base_css}</style></head><body>
+          <section class="page">
+            <div class="eyebrow">DPRO TUTORIAL / HOUSEKEEP / R5 DETAILED MANUAL</div>
+            <h1>家事代行システム 操作チュートリアル 詳細マニュアル</h1>
+            <p class="muted">First10、Guide Center、Start / Resume / Replay、ドラッグ・タッチ・キーボード操作、安全境界をまとめたA4縦版です。</p>
+            <img class="shot large" src="{guide_uri}" alt="Current public Guide Center">
+            <div class="grid3" style="margin-top:4mm">
+              <div class="card"><strong>First10</strong><p>現在の公開Tutorialと同一の10ステップを掲載。</p></div>
+              <div class="card"><strong>Guide Center</strong><p>10件のGuideカードとTutorial定義が一致。</p></div>
+              <div class="card"><strong>Read-only</strong><p>対象を案内し、業務操作を自動実行しません。</p></div>
+            </div>
+            <div class="qrrow">
+              <div><strong>現在のGuide Center</strong><div class="url">{html.escape(GUIDE_URL)}</div></div>
+              <img src="{qr_uri}" alt="Guide Center QR">
+            </div>
+            <div class="footer"><span>DPRO HOUSEKEEP DETAILED MANUAL V1.0</span><span>1 / 5</span></div>
+          </section>
+
+          <section class="page">
+            <div class="eyebrow">FIRST10 / 01-05</div>
+            <h2>First10 前半</h2>
+            <table>
+              <thead><tr><th style="width:9mm">#</th><th>案内内容</th><th style="width:67mm">公開ルート / Primary</th></tr></thead>
+              <tbody>{step_rows(steps[:5],1)}</tbody>
+            </table>
+            <div class="safe" style="margin-top:5mm">
+              <h3>STEP 5の安全境界</h3>
+              <p>予約内容サマリーは確認のみです。予約確定に関わる同意・送信ボタンはチュートリアルから作動させません。</p>
+            </div>
+            <img class="shot medium" style="margin-top:4mm" src="{step1_uri}" alt="Current public tutorial step1">
+            <div class="footer"><span>DPRO HOUSEKEEP DETAILED MANUAL V1.0</span><span>2 / 5</span></div>
+          </section>
+
+          <section class="page">
+            <div class="eyebrow">FIRST10 / 06-10</div>
+            <h2>First10 後半</h2>
+            <table>
+              <thead><tr><th style="width:9mm">#</th><th>案内内容</th><th style="width:67mm">公開ルート / Primary</th></tr></thead>
+              <tbody>{step_rows(steps[5:],6)}</tbody>
+            </table>
+            <div class="safe" style="margin-top:5mm">
+              <h3>スタッフ・管理者入口</h3>
+              <p>STEP 8 / 9は通常のログイン入口を確認します。owner.html?demo=1 と staff.html?demo=1 は、書き込み処理につながる可能性があるため使用しません。</p>
+            </div>
+            <div class="footer"><span>DPRO HOUSEKEEP DETAILED MANUAL V1.0</span><span>3 / 5</span></div>
+          </section>
+
+          <section class="page">
+            <div class="eyebrow">CONTROLS</div>
+            <h2>Start / Resume / Replay と移動操作</h2>
+            <div class="cols2">
+              <div><img class="shot medium" src="{step1_uri}" alt="Tutorial step1"><p><strong>Start:</strong> Guide CenterのStartからSTEP 1を開始します。</p></div>
+              <div><img class="shot mobile" src="{step2_uri}" alt="Tutorial step2 mobile"><p><strong>Next / Back:</strong> 明示されたルートへ移動し、同じ進捗を保持します。</p></div>
+            </div>
+            <div class="grid3" style="margin-top:4mm">
+              <div class="card"><strong>Drag</strong><p>案内パネル上部をマウスでドラッグ。画面端では自動クランプ。</p></div>
+              <div class="card"><strong>Touch</strong><p>スマホでも上部ドラッグ領域をタッチして移動できます。</p></div>
+              <div class="card"><strong>Resume</strong><p>Close / Esc後も、同じSTEPから再開できます。</p></div>
+            </div>
+            <div class="safe" style="margin-top:4mm"><p><strong>Replay:</strong> 完了・Skip後にFirst10をSTEP 1から再実行します。Tutorial用localStorageだけを使い、業務データは変更しません。</p></div>
+            <div class="footer"><span>DPRO HOUSEKEEP DETAILED MANUAL V1.0</span><span>4 / 5</span></div>
+          </section>
+
+          <section class="page">
+            <div class="eyebrow">KEYBOARD / SAFETY</div>
+            <h2>キーボード・フォーカス・安全境界</h2>
+            <div class="cols2">
+              <div>
+                <img class="shot mobile" src="{customer_uri}" alt="Current public customer demo">
+                <p class="muted">現在の公開 customer demo。Tutorialは対象領域を強調表示するだけで、選択・送信を自動実行しません。</p>
+              </div>
+              <div>
+                <div class="card">
+                  <h3>キーボード</h3>
+                  <p><span class="kbd">Tab</span> でボタン間を移動し、表示されるフォーカス枠を確認します。<span class="kbd">Enter</span> / <span class="kbd">Space</span> はTutorial操作ボタンに使用できます。</p>
+                </div>
+                <div class="card" style="margin-top:3mm">
+                  <h3>安全境界</h3>
+                  <p>予約送信、予約変更・取消、連絡送信、チェックリスト生成、demo-prepare、設定変更、通知、ジョブ状態変更は実行しません。</p>
+                </div>
+                <div class="card" style="margin-top:3mm">
+                  <h3>安全な公開ルート</h3>
+                  <p>Guide Center / customer demo / member read-only / staff通常入口 / owner通常入口のみ。スタッフ・管理者のdemoクエリは除外します。</p>
+                </div>
+              </div>
+            </div>
+            <div class="safe" style="margin-top:5mm">
+              <h3>終了時</h3>
+              <p>CloseまたはEscで中断できます。再開はResume、最初からやり直す場合はReplayを使用します。</p>
+            </div>
+            <div class="footer"><span>DPRO HOUSEKEEP DETAILED MANUAL V1.0</span><span>5 / 5</span></div>
+          </section>
+          </body></html>"""
+
+          quick_html_path=BUILD/'quick.html'
+          detail_html_path=BUILD/'detailed.html'
+          quick_html_path.write_text(quick_html, encoding='utf-8')
+          detail_html_path.write_text(detailed_html, encoding='utf-8')
+
+          # Fresh Chrome session for deterministic local HTML -> PDF printing.
+          opts2=Options()
+          opts2.add_argument('--headless=new')
+          opts2.add_argument('--no-sandbox')
+          opts2.add_argument('--disable-dev-shm-usage')
+          opts2.add_argument('--disable-gpu')
+          opts2.add_argument('--allow-file-access-from-files')
+          pdrv=webdriver.Chrome(options=opts2)
+
+          def print_pdf(html_path, pdf_path):
+              pdrv.get(html_path.resolve().as_uri())
+              WebDriverWait(pdrv,15).until(lambda x:x.execute_script("return document.readyState==='complete' && [...document.images].every(i=>i.complete && i.naturalWidth>0)"))
+              pdrv.execute_async_script("""
+                const done=arguments[0];
+                document.fonts.ready.then(()=>done(true)).catch(()=>done(false));
+              """)
+              time.sleep(.3)
+              # A4 in inches; CSS @page size is also A4.
+              res=pdrv.execute_cdp_cmd('Page.printToPDF',{
+                'printBackground':True,
+                'preferCSSPageSize':True,
+                'paperWidth':8.2677165354,
+                'paperHeight':11.6929133858,
+                'marginTop':0,'marginBottom':0,'marginLeft':0,'marginRight':0
+              })
+              pdf_path.write_bytes(base64.b64decode(res['data']))
+
+          quick_pdf=OUT/QUICK
+          detail_pdf=OUT/DETAILED
+          print_pdf(quick_html_path,quick_pdf)
+          print_pdf(detail_html_path,detail_pdf)
+          pdrv.quit()
+
+          def pdf_info(path, expected_pages):
+              reader=PdfReader(path)
+              assert len(reader.pages)==expected_pages, (path,len(reader.pages),expected_pages)
+              sizes=[]
+              for page in reader.pages:
+                  w=float(page.mediabox.width); h=float(page.mediabox.height)
+                  sizes.append([round(w,2),round(h,2)])
+                  assert abs(w-595.28)<2.5 and abs(h-841.89)<2.5, (path,w,h)
+              txt_path=BUILD/(path.stem+'.txt')
+              subprocess.run(['pdftotext',str(path),str(txt_path)],check=True)
+              txt=txt_path.read_text(encoding='utf-8',errors='replace')
+              assert '\ufffd' not in txt
+              assert 'DPRO' in txt and 'HOUSEKEEP' in txt
+              if expected_pages==1:
+                  assert 'Start' in txt and 'Resume' in txt and 'Replay' in txt
+              else:
+                  for s in steps:
+                      assert s['id'] in txt and s['title'] in txt
+                  assert 'Guide Center' in txt and '安全境界' in txt
+              return {'pages':expected_pages,'page_sizes_pt':sizes,'text_chars':len(txt)}
+
+          report['pdfs'][QUICK]=pdf_info(quick_pdf,1)
+          report['pdfs'][DETAILED]=pdf_info(detail_pdf,5)
+
+          # Render every page.
+          qdir=REND/'quick'
+          ddir=REND/'detailed'
+          qdir.mkdir(exist_ok=True)
+          ddir.mkdir(exist_ok=True)
+          subprocess.run(['pdftoppm','-png','-r','180',str(quick_pdf),str(qdir/'page')],check=True)
+          subprocess.run(['pdftoppm','-png','-r','180',str(detail_pdf),str(ddir/'page')],check=True)
+          qpages=sorted(qdir.glob('page-*.png'))
+          dpages=sorted(ddir.glob('page-*.png'))
+          assert len(qpages)==1
+          assert len(dpages)==5
+
+          # Automated visual precheck: every rendered page must be non-blank and expected A4 portrait geometry.
+          pre=[]
+          for p in qpages+dpages:
+              with Image.open(p) as im:
+                  assert im.height > im.width
+                  assert im.width > 1200 and im.height > 1700
+                  g=im.convert('L')
+                  stat=ImageStat.Stat(g)
+                  bbox=g.point(lambda x: 0 if x>248 else 255).getbbox()
+                  assert bbox is not None, f'accidental blank page {p}'
+                  pre.append({'file':str(p.relative_to(BUILD)),'size':[im.width,im.height],'variance':round(stat.var[0],2),'nonblank_bbox':bbox})
+          report['visual_precheck']={'rendered_pages':len(pre),'pages':pre,'accidental_blank':0}
+
+          # Decode every QR from rendered output. There are exactly 2 QRs: Quick page 1 + Detailed page 1.
+          def zbar(path):
+              cp=subprocess.run(['zbarimg','--quiet','--raw',str(path)],text=True,capture_output=True)
+              vals=[x.strip() for x in cp.stdout.splitlines() if x.strip()]
+              return vals
+
+          decoded=[]
+          for p in qpages+dpages:
+              vals=zbar(p)
+              for v in vals:
+                  decoded.append({'file':str(p.relative_to(BUILD)),'value':v})
+          assert len(decoded)==2, decoded
+          assert all(x['value']==GUIDE_URL for x in decoded), decoded
+          report['qr']={'expected':GUIDE_URL,'decoded_count':len(decoded),'decoded':decoded,'exact_match':True}
+
+          # Privacy/safety/static content gate. Screenshots are from Guide Center and customer demo only.
+          combined=(BUILD/'quick.txt').read_text(encoding='utf-8',errors='replace')+(BUILD/'detailed.txt').read_text(encoding='utf-8',errors='replace')
+          forbidden=[
+              '090-1111-2401','Bearer ','SUPABASE_SERVICE_ROLE','SERVICE_ROLE_KEY',
+              'apiKey=', 'secret=', 'password='
+          ]
+          hits=[x for x in forbidden if x in combined]
+          assert not hits, hits
+          report['privacy_safety']={
+              'source_routes':[GUIDE_URL, BASE+'index.html?demo=1'],
+              'member_data_screenshot':False,
+              'owner_demo_used':False,
+              'staff_demo_used':False,
+              'pii_sensitive_business_data':0,
+              'secrets_credentials':0,
+              'forbidden_text_hits':hits
+          }
+
+          # Package exact R5 outputs and evidence.
+          report['business_mutation']=0
+          report['unsafe_write_count']=0
+          report['render_every_page']='PASS'
+          report['qr_decode_every_qr']='PASS'
+          report['automated_visual_precheck']='PASS'
+          report['manual_visual_inspection']='PENDING_ASSISTANT_REVIEW_OF_RENDERED_PNGS'
+          report['verdict']='PASS_PENDING_MANUAL_VISUAL_REVIEW'
+          (BUILD/'r5-manual-qa.json').write_text(json.dumps(report,ensure_ascii=False,indent=2),encoding='utf-8')
+
+          # Convenience ZIP contains only persistent manual PDFs at flat root.
+          with __import__('zipfile').ZipFile(BUILD/'HOUSEKEEP_R5_MANUALS_GITHUB_ROOT_UPLOAD.zip','w',__import__('zipfile').ZIP_DEFLATED) as z:
+              z.write(quick_pdf,QUICK)
+              z.write(detail_pdf,DETAILED)
+
+          print(json.dumps({
+              'verdict':'PASS_PENDING_MANUAL_VISUAL_REVIEW',
+              'quick_pages':1,
+              'detailed_pages':5,
+              'rendered_pages':6,
+              'decoded_qr':2,
+              'unsafe_write_count':0,
+              'business_mutation':0,
+              'first10_count':10,
+              'guide_count':10
+          },ensure_ascii=False))
+          PY
+
+          python /tmp/housekeep_r5_manual_build_qa.py
+
+      - name: Upload R5 manual build and QA evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: housekeep-r5-manual-build-qa
+          path: |
+            r5-manual-build/output/
+            r5-manual-build/renders/
+            r5-manual-build/source-screenshots/
+            r5-manual-build/first10-live.json
+            r5-manual-build/r5-manual-qa.json
+            r5-manual-build/HOUSEKEEP_R5_MANUALS_GITHUB_ROOT_UPLOAD.zip
+          if-no-files-found: warn
