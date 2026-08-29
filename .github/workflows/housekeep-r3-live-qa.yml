@@ -1,0 +1,277 @@
+name: HOUSEKEEP R3 Public Live QA
+
+on:
+  push:
+    paths:
+      - '.github/workflows/housekeep-r3-live-qa.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  r3-public-live-qa:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      BASE_URL: https://dpromstk2000-lab.github.io/dpro-housekeep-line-liff/
+      EXPECTED_VERSION: HOUSEKEEP-TUTORIAL-R3-20260829
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install Selenium
+        run: python -m pip install --disable-pip-version-check selenium==4.35.0
+
+      - name: Run exact public LIVE QA
+        shell: bash
+        run: |
+          mkdir -p r3-live-screenshots
+          cat > /tmp/housekeep_r3_live_qa.py <<'PY'
+          import os, json, time, traceback
+          from selenium import webdriver
+          from selenium.webdriver.chrome.options import Options
+          from selenium.webdriver.common.by import By
+          from selenium.webdriver.common.keys import Keys
+          from selenium.webdriver.common.action_chains import ActionChains
+          from selenium.webdriver.support.ui import WebDriverWait
+
+          BASE=os.environ['BASE_URL']
+          EXPECTED=os.environ['EXPECTED_VERSION']
+          EXPECTED_ROUTES=[
+            'demo-guide.html',
+            'index.html?demo=1','index.html?demo=1','index.html?demo=1','index.html?demo=1',
+            'member.html?phone=090-1111-2401','member.html?phone=090-1111-2401',
+            'staff.html','owner.html','demo-guide.html'
+          ]
+          OUT={'base_url':BASE,'expected_version':EXPECTED,'started_at':time.strftime('%Y-%m-%dT%H:%M:%SZ',time.gmtime()),'viewports':[],'controls':{},'keyboard':{},'network':{},'errors':[],'verdict':'HOLD'}
+
+          opts=Options()
+          opts.add_argument('--headless=new')
+          opts.add_argument('--no-sandbox')
+          opts.add_argument('--disable-dev-shm-usage')
+          opts.add_argument('--disable-gpu')
+          opts.add_argument('--window-size=1440,1000')
+          opts.set_capability('goog:loggingPrefs', {'browser':'ALL','performance':'ALL'})
+          d=webdriver.Chrome(options=opts)
+          wait=WebDriverWait(d,12)
+
+          d.execute_cdp_cmd('Page.addScriptToEvaluateOnNewDocument',{'source':r'''
+            (()=>{
+              window.__dproQaErrors=[];
+              addEventListener('error',e=>window.__dproQaErrors.push({type:'error',message:String(e.message||''),filename:String(e.filename||''),lineno:e.lineno||0,colno:e.colno||0}));
+              addEventListener('unhandledrejection',e=>window.__dproQaErrors.push({type:'unhandledrejection',message:String(e.reason?.stack||e.reason||'')}));
+            })();
+          '''})
+
+          def metrics(w,h):
+            d.execute_cdp_cmd('Emulation.setDeviceMetricsOverride',{'width':w,'height':h,'deviceScaleFactor':1,'mobile':w<=390,'screenWidth':w,'screenHeight':h})
+            d.execute_cdp_cmd('Emulation.setTouchEmulationEnabled',{'enabled':w<=390,'maxTouchPoints':5})
+
+          def ready(step=None,timeout=12):
+            end=time.time()+timeout
+            while time.time()<end:
+              try:
+                v=d.execute_script("return window.DPROHousekeepTutorial?{v:DPROHousekeepTutorial.version,s:DPROHousekeepTutorial.state(),status:document.querySelector('.dpro-tutorial__status')?.textContent||'',hidden:document.querySelector('.dpro-tutorial')?.hidden}:null")
+                if v and v['v']==EXPECTED and (step is None or (v['s']['step']==step and v['s']['active'] and v['status'])):
+                  return v
+              except Exception: pass
+              time.sleep(.08)
+            raise AssertionError(f'tutorial not ready step={step} url={d.current_url}')
+
+          def open_guide(clear=True):
+            d.get(BASE+'demo-guide.html')
+            wait.until(lambda x:x.execute_script('return document.readyState')=='complete')
+            ready()
+            if clear:
+              d.execute_script("localStorage.removeItem('dpro_tutorial_housekeep_v1')")
+            return True
+
+          def start():
+            d.execute_script('DPROHousekeepTutorial.start()')
+            ready(0)
+
+          def state(): return d.execute_script('return DPROHousekeepTutorial.state()')
+          def rect(): return d.execute_script("const r=document.querySelector('.dpro-tutorial').getBoundingClientRect();return {left:r.left,top:r.top,right:r.right,bottom:r.bottom,width:r.width,height:r.height}")
+          def step_snapshot(i):
+            return d.execute_script("""
+              const o=document.querySelector('.dpro-tutorial').getBoundingClientRect();
+              return {
+                step:DPROHousekeepTutorial.state().step,
+                status:document.querySelector('.dpro-tutorial__status').textContent,
+                route:location.pathname.split('/').pop()+location.search,
+                innerWidth:innerWidth,innerHeight:innerHeight,
+                docScroll:document.documentElement.scrollWidth,bodyScroll:document.body.scrollWidth,
+                overflow:Math.max(0,document.documentElement.scrollWidth-innerWidth,document.body.scrollWidth-innerWidth),
+                overlay:{left:o.left,top:o.top,right:o.right,bottom:o.bottom},
+                haloVisible:!document.querySelector('.dpro-tutorial-halo').hidden,
+                unresolved:!document.querySelector('.dpro-tutorial__unresolved').hidden
+              }
+            """)
+          def page_errors():
+            try:return d.execute_script('return window.__dproQaErrors||[]')
+            except:return []
+          def click(sel):
+            e=wait.until(lambda x:x.find_element(By.CSS_SELECTOR,sel))
+            e.click(); return e
+          def enter_on(sel):
+            e=wait.until(lambda x:x.find_element(By.CSS_SELECTOR,sel)); e.send_keys(Keys.ENTER); return e
+          def current_route(): return d.execute_script("return location.pathname.split('/').pop()+location.search")
+
+          def collect_perf():
+            req=[]
+            for item in d.get_log('performance'):
+              try:
+                msg=json.loads(item['message'])['message']
+                if msg.get('method')=='Network.requestWillBeSent':
+                  r=msg['params']['request']; req.append({'method':r.get('method','GET').upper(),'url':r.get('url','')})
+              except Exception: pass
+            return req
+
+          def collect_browser():
+            try:return d.get_log('browser')
+            except:return []
+
+          # Wait until the public Pages site exposes the just-deployed R3 version.
+          last=''
+          for _ in range(30):
+            try:
+              open_guide(clear=False)
+              last=d.execute_script('return DPROHousekeepTutorial.version')
+              if last==EXPECTED: break
+            except Exception as e: last=str(e)
+            time.sleep(2)
+          assert last==EXPECTED, f'public deployment version mismatch: {last}'
+
+          # Four exact viewport passes. Each traverses all authoritative First10 steps.
+          for w,h in [(1440,1000),(1024,768),(390,844),(320,720)]:
+            metrics(w,h); open_guide(); start()
+            row={'viewport':[w,h],'steps':[],'page_errors':[]}
+            for i in range(10):
+              ready(i,timeout=15)
+              snap=step_snapshot(i)
+              assert snap['step']==i, snap
+              assert snap['route']==EXPECTED_ROUTES[i], (i,snap['route'])
+              assert snap['innerWidth']==w and snap['innerHeight']==h, snap
+              if w<=390: assert snap['overflow']==0, snap
+              # Overlay must stay within viewport clamp.
+              o=snap['overlay']; assert o['left']>=7 and o['top']>=7 and o['right']<=w-7 and o['bottom']<=h-7, snap
+              row['steps'].append(snap)
+              row['page_errors'] += page_errors()
+              if i<9:
+                click('.dpro-next'); ready(i+1,timeout=15)
+              else:
+                click('.dpro-next')
+                wait.until(lambda x:x.execute_script('return DPROHousekeepTutorial.state().completed===true && DPROHousekeepTutorial.state().active===false'))
+            OUT['viewports'].append(row)
+
+          # Dedicated control QA at desktop.
+          metrics(1440,1000); open_guide(); start()
+          # Mouse/pointer drag to top-left and clamp.
+          handle=d.find_element(By.CSS_SELECTOR,'[data-dpro-drag-handle]')
+          b0=rect()
+          ActionChains(d).move_to_element(handle).click_and_hold().move_by_offset(-120,-100).release().perform(); time.sleep(.2)
+          b1=rect()
+          OUT['controls']['mouse_pointer_drag']={'before':b0,'after':b1,'pass':(b1!=b0)}
+          assert b1!=b0
+          # ESC closes and focus returns to trigger; Resume returns same step.
+          d.find_element(By.CSS_SELECTOR,'body').send_keys(Keys.ESCAPE); time.sleep(.15)
+          esc=d.execute_script("return {hidden:document.querySelector('.dpro-tutorial').hidden,state:DPROHousekeepTutorial.state(),focus:document.activeElement?.id||''}")
+          OUT['controls']['esc']=esc; assert esc['hidden'] and not esc['state']['active'] and esc['focus']=='dpro-tutorial-trigger'
+          enter_on('#dpro-tutorial-trigger'); ready(0); OUT['controls']['resume_after_esc']=state()
+          # Next then Back.
+          click('.dpro-next'); ready(1); click('.dpro-next'); ready(2); click('.dpro-back'); ready(1)
+          OUT['controls']['next_back']=state(); assert state()['step']==1
+          # Close then Resume same step.
+          click('.dpro-close'); time.sleep(.1); closed=state(); assert not closed['active'] and closed['step']==1
+          click('#dpro-tutorial-trigger'); ready(1); OUT['controls']['close_resume']=state()
+          # Skip then trigger acts as Replay to Step1.
+          click('.dpro-skip'); time.sleep(.1); skipped=state(); assert skipped['completed'] and skipped['skipped']
+          click('#dpro-tutorial-trigger'); ready(0); OUT['controls']['skip_replay']=state()
+
+          # Touch/pointer drag at both mobile widths.
+          for w,h in [(390,844),(320,720)]:
+            metrics(w,h); open_guide(); start(); handle=d.find_element(By.CSS_SELECTOR,'[data-dpro-drag-handle]')
+            r=d.execute_script("const r=arguments[0].getBoundingClientRect();return {x:r.left+r.width/2,y:r.top+r.height/2}",handle); before=rect()
+            d.execute_cdp_cmd('Input.dispatchTouchEvent',{'type':'touchStart','touchPoints':[{'x':r['x'],'y':r['y'],'id':1,'radiusX':1,'radiusY':1,'force':1}]})
+            d.execute_cdp_cmd('Input.dispatchTouchEvent',{'type':'touchMove','touchPoints':[{'x':max(10,r['x']-55),'y':max(10,r['y']-55),'id':1,'radiusX':1,'radiusY':1,'force':1}]})
+            d.execute_cdp_cmd('Input.dispatchTouchEvent',{'type':'touchEnd','touchPoints':[]}); time.sleep(.2); after=rect()
+            ok=before!=after and after['left']>=7 and after['top']>=7 and after['right']<=w-7 and after['bottom']<=h-7
+            OUT['controls'][f'touch_pointer_drag_{w}']={'before':before,'after':after,'pass':ok}; assert ok
+
+          # Keyboard-only completion at 390x844, including cross-page state continuity and visible focus.
+          metrics(390,844); open_guide(); start(); krows=[]
+          for i in range(10):
+            ready(i,timeout=15)
+            # renderStep focuses title. Move with TAB only until Next receives focus.
+            focus_ok=False
+            for _ in range(8):
+              ActionChains(d).send_keys(Keys.TAB).perform(); time.sleep(.03)
+              cls=d.execute_script("return document.activeElement?.className||''")
+              if 'dpro-next' in cls:
+                vis=d.execute_script("return document.activeElement.matches(':focus-visible')")
+                focus_ok=bool(vis); break
+            assert focus_ok, f'focus-visible failed step {i+1}'
+            snap=step_snapshot(i); krows.append({'step':i+1,'route':snap['route'],'focus_visible':focus_ok,'overflow':snap['overflow']})
+            ActionChains(d).send_keys(Keys.ENTER).perform()
+            if i<9: ready(i+1,timeout=15)
+            else: wait.until(lambda x:x.execute_script('return DPROHousekeepTutorial.state().completed===true'))
+          final=state(); assert final['completed'] and not final['active']
+          # Replay with keyboard from focused trigger.
+          trig=d.find_element(By.CSS_SELECTOR,'#dpro-tutorial-trigger'); trig.send_keys(Keys.ENTER); ready(0)
+          OUT['keyboard']={'steps':krows,'completed':final,'replay':state(),'pass':True}
+
+          requests=collect_perf()
+          unsafe=[r for r in requests if r['method'] not in ('GET','HEAD','OPTIONS')]
+          browser_logs=collect_browser()
+          tutorial_console_errors=[x for x in browser_logs if x.get('level')=='SEVERE' and ('tutorial.js' in x.get('message','') or 'Uncaught' in x.get('message',''))]
+          tutorial_page_errors=[]
+          for row in OUT['viewports']:
+            for e in row['page_errors']:
+              if 'tutorial.js' in str(e.get('filename','')) or 'DPROHousekeepTutorial' in str(e.get('message','')):
+                tutorial_page_errors.append(e)
+          OUT['network']={'request_count':len(requests),'unsafe_write_requests':unsafe,'unsafe_write_count':len(unsafe)}
+          OUT['browser_console']={'tutorial_errors':tutorial_console_errors,'tutorial_error_count':len(tutorial_console_errors)}
+          OUT['tutorial_page_errors']=tutorial_page_errors
+          OUT['business_mutation']=0 if not unsafe else 'NOT_ZERO'
+
+          # Mandatory R3 gates.
+          assert len(OUT['viewports'])==4
+          assert all(len(v['steps'])==10 for v in OUT['viewports'])
+          assert all(s['overflow']==0 for v in OUT['viewports'] if v['viewport'][0] in (390,320) for s in v['steps'])
+          assert OUT['controls']['mouse_pointer_drag']['pass']
+          assert OUT['controls']['touch_pointer_drag_390']['pass'] and OUT['controls']['touch_pointer_drag_320']['pass']
+          assert OUT['keyboard']['pass']
+          assert len(unsafe)==0, unsafe
+          assert len(tutorial_console_errors)==0, tutorial_console_errors
+          assert len(tutorial_page_errors)==0, tutorial_page_errors
+          OUT['verdict']='PASS'
+
+          with open('r3-live-qa.json','w',encoding='utf-8') as f: json.dump(OUT,f,ensure_ascii=False,indent=2)
+          d.save_screenshot('r3-live-screenshots/final-step1-390.png')
+          print(json.dumps({'verdict':OUT['verdict'],'unsafe_write_count':len(unsafe),'tutorial_console_error_count':len(tutorial_console_errors),'tutorial_page_error_count':len(tutorial_page_errors)},ensure_ascii=False))
+          d.quit()
+          PY
+          set +e
+          python /tmp/housekeep_r3_live_qa.py
+          rc=$?
+          if [ ! -f r3-live-qa.json ]; then
+            python - <<'PY'
+          import json,traceback
+          open('r3-live-qa.json','w').write(json.dumps({'verdict':'HOLD','reason':'QA script terminated before report creation'},indent=2))
+          PY
+          fi
+          exit $rc
+
+      - name: Upload R3 QA evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: housekeep-r3-live-qa
+          path: |
+            r3-live-qa.json
+            r3-live-screenshots
+          if-no-files-found: warn
