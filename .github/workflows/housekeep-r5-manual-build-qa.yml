@@ -543,7 +543,9 @@ jobs:
           report['qr']={'expected':GUIDE_URL,'decoded_count':len(decoded),'decoded':decoded,'exact_match':True}
 
           # Privacy/safety/static content gate. Screenshots are from Guide Center and customer demo only.
-          combined=(BUILD/'quick.txt').read_text(encoding='utf-8',errors='replace')+(BUILD/'detailed.txt').read_text(encoding='utf-8',errors='replace')
+          quick_txt = BUILD / (quick_pdf.stem + '.txt')
+          detail_txt = BUILD / (detail_pdf.stem + '.txt')
+          combined = quick_txt.read_text(encoding='utf-8',errors='replace') + detail_txt.read_text(encoding='utf-8',errors='replace')
           forbidden=[
               '090-1111-2401','Bearer ','SUPABASE_SERVICE_ROLE','SERVICE_ROLE_KEY',
               'apiKey=', 'secret=', 'password='
