@@ -239,8 +239,10 @@ jobs:
                   d.save_screenshot(str(OUT / f'{label}-top.png'))
                   docs = d.find_element('css selector','[data-housekeep-r6="HOUSEKEEP-R6-20260829"]')
                   d.execute_script("arguments[0].scrollIntoView({block:'center'})", docs)
-                  time.sleep(0.2)
-                  docs.screenshot(str(OUT / f'{label}-resources.png'))
+                  time.sleep(0.3)
+                  # Element screenshot can time out on hosted Chrome renderers.
+                  # Capture the viewport after centering the R6 resource block instead.
+                  d.save_screenshot(str(OUT / f'{label}-resources.png'))
 
                   browser_logs = d.get_log('browser')
                   severe = [x for x in browser_logs if x.get('level') == 'SEVERE']
@@ -344,6 +346,7 @@ jobs:
           python /tmp/r6_live_qa.py
 
       - name: Upload HOUSEKEEP R6 LIVE QA artifact
+        if: always()
         uses: actions/upload-artifact@v4
         with:
           name: housekeep-r6-live-qa
