@@ -1,0 +1,197 @@
+name: HOUSEKEEP R4 Guide Center Live QA
+
+on:
+  push:
+    paths:
+      - '.github/workflows/housekeep-r4-live-qa.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  r4-guide-live-qa:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      BASE_URL: https://dpromstk2000-lab.github.io/dpro-housekeep-line-liff/
+      EXPECTED_TUTORIAL_VERSION: HOUSEKEEP-TUTORIAL-R3-20260829
+      EXPECTED_GUIDE_VERSION: HOUSEKEEP-GUIDE-R4-20260829
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install Selenium
+        run: python -m pip install --disable-pip-version-check selenium==4.35.0
+      - name: Run exact R4 public LIVE QA
+        shell: bash
+        run: |
+          mkdir -p r4-live-screenshots
+          cat > /tmp/housekeep_r4_live_qa.py <<'PY'
+          import os,json,time
+          from selenium import webdriver
+          from selenium.webdriver.chrome.options import Options
+          from selenium.webdriver.common.by import By
+          from selenium.webdriver.common.keys import Keys
+          from selenium.webdriver.common.action_chains import ActionChains
+          from selenium.webdriver.support.ui import WebDriverWait
+
+          BASE=os.environ['BASE_URL']
+          TV=os.environ['EXPECTED_TUTORIAL_VERSION']
+          GV=os.environ['EXPECTED_GUIDE_VERSION']
+          OUT={'base_url':BASE,'tutorial_version':TV,'guide_version':GV,'viewports':[],'controls':{},'alignment':{},'network':{},'errors':[],'verdict':'HOLD'}
+          opts=Options(); opts.add_argument('--headless=new'); opts.add_argument('--no-sandbox'); opts.add_argument('--disable-dev-shm-usage'); opts.add_argument('--disable-gpu'); opts.add_argument('--window-size=1440,1000')
+          opts.set_capability('goog:loggingPrefs',{'browser':'ALL','performance':'ALL'})
+          d=webdriver.Chrome(options=opts); wait=WebDriverWait(d,12)
+          d.execute_cdp_cmd('Page.addScriptToEvaluateOnNewDocument',{'source':r'''(()=>{window.__dproQaErrors=[];addEventListener('error',e=>__dproQaErrors.push({type:'error',message:String(e.message||''),filename:String(e.filename||'')}));addEventListener('unhandledrejection',e=>__dproQaErrors.push({type:'unhandledrejection',message:String(e.reason||'')}));})();'''})
+
+          def metrics(w,h):
+            d.execute_cdp_cmd('Emulation.setDeviceMetricsOverride',{'width':w,'height':h,'deviceScaleFactor':1,'mobile':w<=390,'screenWidth':w,'screenHeight':h})
+            d.execute_cdp_cmd('Emulation.setTouchEmulationEnabled',{'enabled':w<=390,'maxTouchPoints':5})
+          def open_guide(clear=False):
+            d.get(BASE+'demo-guide.html'); wait.until(lambda x:x.execute_script('return document.readyState')=='complete')
+            end=time.time()+15
+            while time.time()<end:
+              try:
+                ok=d.execute_script("return !!window.DPROHousekeepTutorial && DPROHousekeepTutorial.version===arguments[0] && !!window.DPROHousekeepGuideCenter && DPROHousekeepGuideCenter.version===arguments[1] && document.querySelectorAll('.dpro-guide-step').length===10",TV,GV)
+                if ok: break
+              except: pass
+              time.sleep(.1)
+            else: raise AssertionError('Guide Center not ready '+d.current_url)
+            if clear:
+              d.execute_script("localStorage.removeItem('dpro_tutorial_housekeep_v1'); DPROHousekeepGuideCenter.sync()")
+          def state(): return d.execute_script('return DPROHousekeepTutorial.state()')
+          def collect_perf():
+            req=[]
+            for item in d.get_log('performance'):
+              try:
+                msg=json.loads(item['message'])['message']
+                if msg.get('method')=='Network.requestWillBeSent':
+                  r=msg['params']['request']; req.append({'method':r.get('method','GET').upper(),'url':r.get('url','')})
+              except: pass
+            return req
+
+          # Wait for public R4 deployment.
+          for _ in range(30):
+            try:
+              open_guide(False); break
+            except Exception:
+              time.sleep(2)
+          else: raise AssertionError('public R4 deployment not available')
+
+          # Four viewport Guide Center verification.
+          for w,h in [(1440,1000),(1024,768),(390,844),(320,720)]:
+            metrics(w,h); open_guide(True)
+            snap=d.execute_script("""
+              const cards=[...document.querySelectorAll('.dpro-guide-step')];
+              const steps=[...DPROHousekeepTutorial.steps];
+              return {
+                width:innerWidth,height:innerHeight,
+                guideCount:cards.length,tutorialCount:steps.length,
+                overflow:Math.max(0,document.documentElement.scrollWidth-innerWidth,document.body.scrollWidth-innerWidth),
+                guideVersion:DPROHousekeepGuideCenter.version,
+                tutorialVersion:DPROHousekeepGuideCenter.tutorialVersion,
+                storeKey:DPROHousekeepGuideCenter.storeKey,
+                originalScreenCards:document.querySelectorAll('#screenGrid .card').length,
+                originalFlowSteps:document.querySelectorAll('#flowGrid .flow-step').length,
+                primaryHref:document.querySelector('#primaryDemoLink')?.getAttribute('href')||'',
+                alignment:cards.map((c,i)=>({
+                  id:c.dataset.stepId===steps[i].id,
+                  route:c.dataset.route===steps[i].url,
+                  primary:c.dataset.primary===steps[i].primary,
+                  fallbacks:JSON.stringify(JSON.parse(c.dataset.fallbacks||'[]'))===JSON.stringify([...steps[i].fallbacks])
+                }))
+              };
+            """)
+            assert snap['guideCount']==10 and snap['tutorialCount']==10, snap
+            assert snap['guideVersion']==GV and snap['tutorialVersion']==TV, snap
+            assert snap['storeKey']=='dpro_tutorial_housekeep_v1', snap
+            assert all(all(x.values()) for x in snap['alignment']), snap['alignment']
+            if w<=390: assert snap['overflow']==0, snap
+            assert snap['originalScreenCards']==5 and snap['originalFlowSteps']==5 and snap['primaryHref']=='index.html?demo=1', snap
+            OUT['viewports'].append(snap)
+
+          # Start -> Step1.
+          metrics(1440,1000); open_guide(True)
+          d.find_element(By.CSS_SELECTOR,'#guideStart').click()
+          wait.until(lambda x:x.execute_script("return DPROHousekeepTutorial.state().active && DPROHousekeepTutorial.state().step===0 && location.pathname.endsWith('/demo-guide.html')"))
+          OUT['controls']['start']=state(); assert state()['step']==0 and state()['active']
+
+          # Interrupt on Step3, return to Guide Center, Resume same Step3 cross-page.
+          d.find_element(By.CSS_SELECTOR,'.dpro-next').click()
+          wait.until(lambda x:x.current_url.endswith('index.html?demo=1'))
+          wait.until(lambda x:x.execute_script('return DPROHousekeepTutorial.state().step===1 && DPROHousekeepTutorial.state().active'))
+          d.find_element(By.CSS_SELECTOR,'.dpro-next').click()
+          wait.until(lambda x:x.execute_script('return DPROHousekeepTutorial.state().step===2 && DPROHousekeepTutorial.state().active'))
+          d.find_element(By.CSS_SELECTOR,'.dpro-close').click()
+          assert state()['step']==2 and not state()['active']
+          open_guide(False)
+          d.find_element(By.CSS_SELECTOR,'#guideResume').click()
+          wait.until(lambda x:x.current_url.endswith('index.html?demo=1'))
+          wait.until(lambda x:x.execute_script('return DPROHousekeepTutorial.state().step===2 && DPROHousekeepTutorial.state().active'))
+          OUT['controls']['resume']=state(); assert state()['step']==2 and state()['active']
+
+          # Skip -> return -> Replay -> Step1.
+          d.find_element(By.CSS_SELECTOR,'.dpro-skip').click(); assert state()['completed'] and state()['skipped']
+          open_guide(False); d.find_element(By.CSS_SELECTOR,'#guideReplay').click()
+          wait.until(lambda x:x.execute_script('return DPROHousekeepTutorial.state().step===0 && DPROHousekeepTutorial.state().active'))
+          OUT['controls']['replay']=state(); assert state()['step']==0 and state()['active']
+          d.find_element(By.CSS_SELECTOR,'.dpro-close').click()
+
+          # Keyboard focus on Guide controls at 390.
+          metrics(390,844); open_guide(True)
+          d.execute_script("document.activeElement && document.activeElement.blur()")
+          body=d.find_element(By.TAG_NAME,'body'); body.click()
+          seen=[]; focus_visible=False
+          for _ in range(30):
+            ActionChains(d).send_keys(Keys.TAB).perform(); time.sleep(.03)
+            info=d.execute_script("return {id:document.activeElement?.id||'',fv:document.activeElement?.matches?.(':focus-visible')||false}")
+            if info['id'] in ('guideStart','guideResume','guideReplay'):
+              seen.append(info['id']); focus_visible=focus_visible or bool(info['fv'])
+            if len(set(seen))==3: break
+          OUT['controls']['keyboard_focus']={'seen':seen,'focus_visible':focus_visible}
+          assert set(seen)=={'guideStart','guideResume','guideReplay'} and focus_visible
+
+          requests=collect_perf(); unsafe=[r for r in requests if r['method'] not in ('GET','HEAD','OPTIONS')]
+          browser_logs=d.get_log('browser')
+          bad_console=[x for x in browser_logs if x.get('level')=='SEVERE' and ('tutorial.js' in x.get('message','') or 'demo-guide.html' in x.get('message','') or 'Uncaught' in x.get('message',''))]
+          page_errors=d.execute_script('return window.__dproQaErrors||[]')
+          bad_page=[e for e in page_errors if 'tutorial.js' in str(e.get('filename','')) or 'demo-guide.html' in str(e.get('filename','')) or 'DPROHousekeep' in str(e.get('message',''))]
+          guide_keys=d.execute_script("return Object.keys(localStorage).filter(k=>k.includes('guide')||k.includes('tutorial'))")
+          assert guide_keys.count('dpro_tutorial_housekeep_v1')==1 and all(k=='dpro_tutorial_housekeep_v1' for k in guide_keys), guide_keys
+          OUT['network']={'unsafe_write_count':len(unsafe),'unsafe_write_requests':unsafe}
+          OUT['errors']={'console':bad_console,'page':bad_page}
+          OUT['business_mutation']=0 if not unsafe else 'NOT_ZERO'
+          OUT['product_regression']=0
+          assert len(OUT['viewports'])==4
+          assert all(v['guideCount']==10 for v in OUT['viewports'])
+          assert all(v['overflow']==0 for v in OUT['viewports'] if v['width'] in (390,320))
+          assert len(unsafe)==0, unsafe
+          assert len(bad_console)==0, bad_console
+          assert len(bad_page)==0, bad_page
+          OUT['alignment']='PASS'; OUT['verdict']='PASS'
+          with open('r4-live-qa.json','w',encoding='utf-8') as f: json.dump(OUT,f,ensure_ascii=False,indent=2)
+          d.save_screenshot('r4-live-screenshots/guide-center-390.png')
+          print(json.dumps({'verdict':'PASS','guide_count':10,'unsafe_write_count':0,'business_mutation':0,'product_regression':0},ensure_ascii=False))
+          d.quit()
+          PY
+          set +e
+          python /tmp/housekeep_r4_live_qa.py
+          rc=$?
+          if [ ! -f r4-live-qa.json ]; then
+            python - <<'PY'
+          import json
+          open('r4-live-qa.json','w').write(json.dumps({'verdict':'HOLD','reason':'QA script terminated before report creation'},indent=2))
+          PY
+          fi
+          exit $rc
+      - name: Upload R4 QA evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: housekeep-r4-live-qa
+          path: |
+            r4-live-qa.json
+            r4-live-screenshots
+          if-no-files-found: warn
