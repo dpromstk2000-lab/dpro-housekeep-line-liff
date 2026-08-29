@@ -157,3 +157,17 @@ window.DPRO_HOUSEKEEP_CONFIG = Object.freeze({
     return response;
   };
 })();
+
+(() => {
+  'use strict';
+  const file = location.pathname.split('/').pop() || 'index.html';
+  const safePages = new Set(['index.html', 'member.html', 'staff.html', 'owner.html']);
+  if (!safePages.has(file)) return;
+  if ((file === 'staff.html' || file === 'owner.html') && new URL(location.href).searchParams.has('demo')) return;
+  if (document.querySelector('script[data-dpro-housekeep-tutorial]')) return;
+  const s = document.createElement('script');
+  s.src = 'tutorial.js?v=R3-20260829';
+  s.async = false;
+  s.dataset.dproHousekeepTutorial = 'R3';
+  document.head.appendChild(s);
+})();
