@@ -28,8 +28,11 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Install Selenium
+      - name: Install browser QA dependencies
         run: |
+          sudo apt-get update -y
+          sudo apt-get install -y fonts-noto-cjk
+          fc-cache -f
           python -m pip install --disable-pip-version-check selenium==4.35.0
 
       - name: Wait for Product Site Pages and lock newest main
@@ -128,6 +131,21 @@ jobs:
                   'sha256': hashlib.sha256(data).hexdigest()
               }
 
+          def actionable_severe(entries):
+              actionable = []
+              ignored = []
+              for x in entries:
+                  if x.get('level') != 'SEVERE':
+                      continue
+                  msg = x.get('message', '')
+                  # GitHub Pages may request a root-level favicon that does not exist.
+                  # This is platform/browser noise, not a HOUSEKEEP tutorial or Product Site error.
+                  if '/favicon.ico' in msg and '404' in msg:
+                      ignored.append(x)
+                  else:
+                      actionable.append(x)
+              return actionable, ignored
+
           options = Options()
           options.add_argument('--headless=new')
           options.add_argument('--no-sandbox')
@@ -151,6 +169,7 @@ jobs:
               'viewports': [],
               'tutorial_console_errors': 0,
               'tutorial_pageerror': 0,
+              'ignored_platform_console_noise': [],
               'unsafe_write': 0,
               'business_mutation': 0,
               'product_site_regression': 0,
@@ -238,14 +257,28 @@ jobs:
 
                   d.save_screenshot(str(OUT / f'{label}-top.png'))
                   docs = d.find_element('css selector','[data-housekeep-r6="HOUSEKEEP-R6-20260829"]')
-                  d.execute_script("arguments[0].scrollIntoView({block:'center'})", docs)
-                  time.sleep(0.3)
-                  # Element screenshot can time out on hosted Chrome renderers.
-                  # Capture the viewport after centering the R6 resource block instead.
+                  d.execute_script("""
+                    document.documentElement.style.scrollBehavior='auto';
+                    document.body.style.scrollBehavior='auto';
+                    const el=arguments[0];
+                    const r=el.getBoundingClientRect();
+                    const target=Math.max(0, window.scrollY + r.top - (window.innerHeight-r.height)/2);
+                    window.scrollTo(0,target);
+                  """, docs)
+                  time.sleep(0.2)
+                  resource_rect = d.execute_script("""
+                    const r=arguments[0].getBoundingClientRect();
+                    return {top:r.top,bottom:r.bottom,left:r.left,right:r.right,width:r.width,height:r.height};
+                  """, docs)
+                  assert resource_rect['bottom'] > 0 and resource_rect['top'] < dims['innerHeight'], (label, resource_rect, dims)
+                  assert resource_rect['left'] >= 0 and resource_rect['right'] <= dims['innerWidth'] + 1, (label, resource_rect, dims)
                   d.save_screenshot(str(OUT / f'{label}-resources.png'))
 
                   browser_logs = d.get_log('browser')
-                  severe = [x for x in browser_logs if x.get('level') == 'SEVERE']
+                  severe, ignored = actionable_severe(browser_logs)
+                  report['ignored_platform_console_noise'].extend(
+                      [{'page': label, **x} for x in ignored]
+                  )
                   assert not severe, (label, severe)
 
                   perf = d.get_log('performance')
@@ -273,6 +306,7 @@ jobs:
                           dims['bodyScrollWidth'] - dims['innerWidth']
                       ),
                       'links': links,
+                      'resource_rect': resource_rect,
                       'focus_visible': focus_visible,
                       'console_errors': 0,
                       'pageerror': 0
@@ -293,7 +327,10 @@ jobs:
               assert 'guideCenter' in source
 
               browser_logs = d.get_log('browser')
-              severe = [x for x in browser_logs if x.get('level') == 'SEVERE']
+              severe, ignored = actionable_severe(browser_logs)
+              report['ignored_platform_console_noise'].extend(
+                  [{'page': 'tutorial-guide', **x} for x in ignored]
+              )
               assert not severe, severe
 
               perf = d.get_log('performance')
@@ -324,6 +361,10 @@ jobs:
 
           (OUT / 'R6_LIVE_QA.json').write_text(
               json.dumps(report, ensure_ascii=False, indent=2), encoding='utf-8'
+          )
+          (OUT / 'R6_LIVE_QA_PASS.txt').write_text(
+              'R6=PASS\nFORWARD_ONLY=PASS\nPRODUCT_SITE_ROLLBACK=0\nBUSINESS_MUTATION=0\n',
+              encoding='utf-8'
           )
           print(json.dumps({
               'verdict': report['verdict'],
