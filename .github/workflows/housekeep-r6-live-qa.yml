@@ -1,0 +1,335 @@
+name: HOUSEKEEP R6 Product Site LIVE QA
+
+on:
+  push:
+    paths:
+      - '.github/workflows/housekeep-r6-live-qa.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  housekeep-r6-live-qa:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      PRODUCT_REPO: https://github.com/dpromstk2000-lab/dpro-line-systems-site.git
+      PRODUCT_URL: https://dpromstk2000-lab.github.io/dpro-line-systems-site/systems/housekeep.html
+      GUIDE_URL: https://dpromstk2000-lab.github.io/dpro-housekeep-line-liff/demo-guide.html
+      TUTORIAL_START: https://dpromstk2000-lab.github.io/dpro-housekeep-line-liff/demo-guide.html#guideStart
+      GUIDE_CENTER: https://dpromstk2000-lab.github.io/dpro-housekeep-line-liff/demo-guide.html#guideCenter
+      QUICK_PDF: https://dpromstk2000-lab.github.io/dpro-housekeep-line-liff/DPRO_TUTORIAL_HOUSEKEEP_QUICK_START_V1.0.pdf
+      DETAILED_PDF: https://dpromstk2000-lab.github.io/dpro-housekeep-line-liff/DPRO_TUTORIAL_HOUSEKEEP_DETAILED_MANUAL_V1.0.pdf
+      HOUSEKEEP_R6_WRITE_COMMIT: e93ba202de38cdf619582d96ac39d7f2a42ce0ac
+      EXPECTED_BLOB_SHA: 8471cb095cc03e7dea1f640aeb5f76bd41ce8786
+      EXPECTED_CONTENT_SHA256: c0f9a0d824cb22b744b55f3f0fa76385e19f6f4547cfe3262107ffc238088a5c
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Selenium
+        run: |
+          python -m pip install --disable-pip-version-check selenium==4.35.0
+
+      - name: Wait for Product Site Pages and lock newest main
+        shell: bash
+        run: |
+          set -euo pipefail
+          git clone --depth=100 --branch main "$PRODUCT_REPO" /tmp/product-site
+          cd /tmp/product-site
+
+          echo "PRODUCT_SITE_HEAD=$(git rev-parse HEAD)" >> "$GITHUB_ENV"
+          echo "PRODUCT_SITE_TREE=$(git rev-parse 'HEAD^{tree}')" >> "$GITHUB_ENV"
+
+          git merge-base --is-ancestor "$HOUSEKEEP_R6_WRITE_COMMIT" HEAD
+
+          test -f systems/housekeep.html
+          test -f systems/housekeep.html.txt
+          cmp -s systems/housekeep.html systems/housekeep.html.txt
+
+          test "$(git hash-object systems/housekeep.html)" = "$EXPECTED_BLOB_SHA"
+          test "$(git hash-object systems/housekeep.html.txt)" = "$EXPECTED_BLOB_SHA"
+
+          echo "$EXPECTED_CONTENT_SHA256  systems/housekeep.html" | sha256sum -c -
+          echo "$EXPECTED_CONTENT_SHA256  systems/housekeep.html.txt" | sha256sum -c -
+
+          for i in $(seq 1 40); do
+            body="$(curl -fsSL --retry 2 --retry-delay 1 "${PRODUCT_URL}?housekeep-r6-qa=${GITHUB_RUN_ID}-${i}" || true)"
+            if printf '%s' "$body" | grep -q 'data-housekeep-r6="HOUSEKEEP-R6-20260829"'; then
+              printf '%s' "$body" > /tmp/live-housekeep.html
+              echo "Product Site R6 marker is live"
+              exit 0
+            fi
+            sleep 3
+          done
+
+          echo "Timed out waiting for HOUSEKEEP R6 public marker" >&2
+          exit 1
+
+      - name: Run 4-width LIVE QA
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p qa-output
+
+          cat > /tmp/r6_live_qa.py <<'PY'
+          import json, os, time, urllib.request, hashlib
+          from pathlib import Path
+          from selenium import webdriver
+          from selenium.webdriver.chrome.options import Options
+          from selenium.webdriver.common.action_chains import ActionChains
+          from selenium.webdriver.common.keys import Keys
+          from selenium.common.exceptions import WebDriverException
+
+          PRODUCT_URL = os.environ['PRODUCT_URL']
+          GUIDE_URL = os.environ['GUIDE_URL']
+          RESOURCES = {
+              'tutorial-start': os.environ['TUTORIAL_START'],
+              'guide-center': os.environ['GUIDE_CENTER'],
+              'quick-pdf': os.environ['QUICK_PDF'],
+              'detailed-pdf': os.environ['DETAILED_PDF'],
+          }
+          OUT = Path('qa-output')
+          VIEWPORTS = [
+              ('pc-1440x1000', 1440, 1000),
+              ('tablet-1024x768', 1024, 768),
+              ('mobile-390x844', 390, 844),
+              ('mobile-320x720', 320, 720),
+          ]
+
+          def http_get(url):
+              req = urllib.request.Request(url, headers={'User-Agent':'DPRO-HOUSEKEEP-R6-QA/1.0'})
+              with urllib.request.urlopen(req, timeout=20) as r:
+                  data = r.read()
+                  return r.status, r.headers.get_content_type(), data
+
+          resource_http = {}
+          for name, url in RESOURCES.items():
+              base = url.split('#',1)[0]
+              status, ctype, data = http_get(base)
+              assert status == 200, (name, status)
+              if name.endswith('pdf'):
+                  assert data[:4] == b'%PDF', name
+              else:
+                  text = data.decode('utf-8', errors='replace')
+                  if name == 'tutorial-start':
+                      assert 'id="guideStart"' in text
+                  if name == 'guide-center':
+                      assert 'id="guideCenter"' in text
+              resource_http[name] = {
+                  'url': url,
+                  'status': status,
+                  'content_type': ctype,
+                  'bytes': len(data),
+                  'sha256': hashlib.sha256(data).hexdigest()
+              }
+
+          options = Options()
+          options.add_argument('--headless=new')
+          options.add_argument('--no-sandbox')
+          options.add_argument('--disable-dev-shm-usage')
+          options.add_argument('--disable-gpu')
+          options.add_argument('--force-device-scale-factor=1')
+          options.set_capability('goog:loggingPrefs', {'browser':'ALL','performance':'ALL'})
+
+          report = {
+              'system': 'HOUSEKEEP',
+              'batch': '09',
+              'stage': 'R6_LIVE_QA',
+              'product_site_head_at_qa': os.environ['PRODUCT_SITE_HEAD'],
+              'product_site_tree_at_qa': os.environ['PRODUCT_SITE_TREE'],
+              'housekeep_r6_write_commit': os.environ['HOUSEKEEP_R6_WRITE_COMMIT'],
+              'forward_only': 'PASS',
+              'product_site_rollback': 0,
+              'expected_blob_sha': os.environ['EXPECTED_BLOB_SHA'],
+              'html_txt_byte_identical': True,
+              'resource_http': resource_http,
+              'viewports': [],
+              'tutorial_console_errors': 0,
+              'tutorial_pageerror': 0,
+              'unsafe_write': 0,
+              'business_mutation': 0,
+              'product_site_regression': 0,
+              'verdict': 'PENDING'
+          }
+
+          d = webdriver.Chrome(options=options)
+          try:
+              unsafe_methods = {'POST','PUT','PATCH','DELETE'}
+              unsafe_seen = []
+
+              for label, width, height in VIEWPORTS:
+                  d.set_window_size(width, height)
+                  d.get(PRODUCT_URL + f'?r6qa={int(time.time()*1000)}')
+                  time.sleep(1.2)
+
+                  dims = d.execute_script("""
+                    return {
+                      innerWidth: window.innerWidth,
+                      innerHeight: window.innerHeight,
+                      documentScrollWidth: document.documentElement.scrollWidth,
+                      bodyScrollWidth: document.body.scrollWidth
+                    };
+                  """)
+                  assert dims['innerWidth'] == width, (label, dims)
+                  if width <= 390:
+                      assert dims['documentScrollWidth'] <= dims['innerWidth'], (label, dims)
+                      assert dims['bodyScrollWidth'] <= dims['innerWidth'], (label, dims)
+
+                  assert d.find_element('css selector','[data-housekeep-r6="HOUSEKEEP-R6-20260829"]')
+
+                  links = {}
+                  focus_visible = {}
+                  for name, expected in RESOURCES.items():
+                      el = d.find_element('css selector', f'[data-r6-resource="{name}"]')
+                      href = el.get_attribute('href')
+                      assert href == expected, (name, href, expected)
+                      assert el.is_displayed(), name
+                      assert el.get_attribute('tabindex') in (None, '', '0'), (name, el.get_attribute('tabindex'))
+                      links[name] = href
+
+                      # Ephemeral DOM sentinel + real keyboard TAB to verify keyboard-visible focus.
+                      d.execute_script("""
+                        const target=arguments[0];
+                        const old=document.getElementById('dpro-r6-qa-sentinel');
+                        if(old) old.remove();
+                        const b=document.createElement('button');
+                        b.id='dpro-r6-qa-sentinel';
+                        b.textContent='qa';
+                        target.parentNode.insertBefore(b,target);
+                        b.focus();
+                      """, el)
+                      ActionChains(d).send_keys(Keys.TAB).perform()
+                      time.sleep(0.08)
+                      active_name = d.execute_script("return document.activeElement && document.activeElement.getAttribute('data-r6-resource')")
+                      matches = d.execute_script("return document.activeElement && document.activeElement.matches(':focus-visible')")
+                      cs = d.execute_script("""
+                        const s=getComputedStyle(document.activeElement);
+                        return {outlineStyle:s.outlineStyle, outlineWidth:s.outlineWidth};
+                      """)
+                      assert active_name == name, (name, active_name)
+                      assert matches or (cs['outlineStyle'] != 'none' and cs['outlineWidth'] != '0px'), (name, matches, cs)
+                      focus_visible[name] = {'focus_visible_match': bool(matches), **cs}
+                      d.execute_script("document.getElementById('dpro-r6-qa-sentinel')?.remove()")
+
+                  # Existing Product Site content regression guard.
+                  body = d.page_source
+                  for marker in [
+                      '月額5,500円（税込）',
+                      'https://lin.ee/YxJGXV6D',
+                      'https://dpromstk2000-lab.github.io/dpro-housekeep-line-liff/?demo=1',
+                      '../lp-housekeep.html',
+                      '../flyer-housekeep.html',
+                      '../flyer-housekeep.pdf',
+                  ]:
+                      assert marker in body, marker
+
+                  d.save_screenshot(str(OUT / f'{label}-top.png'))
+                  docs = d.find_element('css selector','[data-housekeep-r6="HOUSEKEEP-R6-20260829"]')
+                  d.execute_script("arguments[0].scrollIntoView({block:'center'})", docs)
+                  time.sleep(0.2)
+                  docs.screenshot(str(OUT / f'{label}-resources.png'))
+
+                  browser_logs = d.get_log('browser')
+                  severe = [x for x in browser_logs if x.get('level') == 'SEVERE']
+                  assert not severe, (label, severe)
+
+                  perf = d.get_log('performance')
+                  for item in perf:
+                      try:
+                          msg = json.loads(item['message'])['message']
+                          if msg.get('method') == 'Network.requestWillBeSent':
+                              method = msg['params']['request']['method'].upper()
+                              if method in unsafe_methods:
+                                  unsafe_seen.append({
+                                      'page': label,
+                                      'method': method,
+                                      'url': msg['params']['request']['url']
+                                  })
+                      except Exception:
+                          pass
+
+                  report['viewports'].append({
+                      'label': label,
+                      'requested': {'width':width,'height':height},
+                      'measured': dims,
+                      'horizontal_overflow': max(
+                          0,
+                          dims['documentScrollWidth'] - dims['innerWidth'],
+                          dims['bodyScrollWidth'] - dims['innerWidth']
+                      ),
+                      'links': links,
+                      'focus_visible': focus_visible,
+                      'console_errors': 0,
+                      'pageerror': 0
+                  })
+
+              # Tutorial page safety regression check; no product controls are activated.
+              d.set_window_size(390, 844)
+              d.get(GUIDE_URL + f'?r6qa={int(time.time()*1000)}')
+              time.sleep(1.0)
+              source = d.page_source
+              assert 'HOUSEKEEP-GUIDE-R4-20260829' in source
+              assert 'guideStart' in source
+              assert 'guideCenter' in source
+
+              browser_logs = d.get_log('browser')
+              severe = [x for x in browser_logs if x.get('level') == 'SEVERE']
+              assert not severe, severe
+
+              perf = d.get_log('performance')
+              for item in perf:
+                  try:
+                      msg = json.loads(item['message'])['message']
+                      if msg.get('method') == 'Network.requestWillBeSent':
+                          method = msg['params']['request']['method'].upper()
+                          if method in unsafe_methods:
+                              unsafe_seen.append({
+                                  'page': 'tutorial-guide',
+                                  'method': method,
+                                  'url': msg['params']['request']['url']
+                              })
+                  except Exception:
+                      pass
+
+              assert not unsafe_seen, unsafe_seen
+              report['unsafe_write'] = 0
+              report['business_mutation'] = 0
+              report['product_site_regression'] = 0
+              report['tutorial_console_errors'] = 0
+              report['tutorial_pageerror'] = 0
+              report['verdict'] = 'PASS'
+
+          finally:
+              d.quit()
+
+          (OUT / 'R6_LIVE_QA.json').write_text(
+              json.dumps(report, ensure_ascii=False, indent=2), encoding='utf-8'
+          )
+          print(json.dumps({
+              'verdict': report['verdict'],
+              'head': report['product_site_head_at_qa'],
+              'tree': report['product_site_tree_at_qa'],
+              'viewports': [v['label'] for v in report['viewports']],
+              'mobile_overflow': {
+                  v['label']: v['horizontal_overflow']
+                  for v in report['viewports'] if v['requested']['width'] <= 390
+              },
+              'resource_http': {k:v['status'] for k,v in report['resource_http'].items()},
+              'unsafe_write': report['unsafe_write'],
+              'business_mutation': report['business_mutation'],
+              'product_site_regression': report['product_site_regression'],
+              'product_site_rollback': report['product_site_rollback'],
+              'forward_only': report['forward_only']
+          }, ensure_ascii=False))
+          PY
+
+          python /tmp/r6_live_qa.py
+
+      - name: Upload HOUSEKEEP R6 LIVE QA artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: housekeep-r6-live-qa
+          path: qa-output/
+          if-no-files-found: error
