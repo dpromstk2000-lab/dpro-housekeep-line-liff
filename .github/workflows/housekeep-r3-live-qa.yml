@@ -1,4 +1,5 @@
 name: HOUSEKEEP R3 Public Live QA
+# QA_REVISION: V1.1-SETTLED-READY-20260829
 
 on:
   push:
@@ -75,12 +76,33 @@ jobs:
             end=time.time()+timeout
             while time.time()<end:
               try:
-                v=d.execute_script("return window.DPROHousekeepTutorial?{v:DPROHousekeepTutorial.version,s:DPROHousekeepTutorial.state(),status:document.querySelector('.dpro-tutorial__status')?.textContent||'',hidden:document.querySelector('.dpro-tutorial')?.hidden}:null")
-                if v and v['v']==EXPECTED and (step is None or (v['s']['step']==step and v['s']['active'] and v['status'])):
+                v=d.execute_script("""
+                  if (!window.DPROHousekeepTutorial) return null;
+                  const panel=document.querySelector('.dpro-tutorial');
+                  const r=panel?.getBoundingClientRect();
+                  return {
+                    v:DPROHousekeepTutorial.version,
+                    s:DPROHousekeepTutorial.state(),
+                    status:document.querySelector('.dpro-tutorial__status')?.textContent||'',
+                    hidden:panel?.hidden,
+                    route:location.pathname.split('/').pop()+location.search,
+                    overlay:r?{left:r.left,top:r.top,right:r.right,bottom:r.bottom}:null,
+                    w:innerWidth,h:innerHeight
+                  };
+                """)
+                if not v or v['v']!=EXPECTED:
+                  time.sleep(.08); continue
+                if step is None:
+                  return v
+                expected_status=f'STEP {step+1} / 10'
+                o=v.get('overlay') or {}
+                clamped=(not v.get('hidden') and o.get('left',-999)>=7 and o.get('top',-999)>=7 and o.get('right',999999)<=v.get('w',0)-7 and o.get('bottom',999999)<=v.get('h',0)-7)
+                correct=(v['s']['step']==step and v['s']['active'] and expected_status in v['status'] and v['route']==EXPECTED_ROUTES[step])
+                if correct and clamped:
                   return v
               except Exception: pass
               time.sleep(.08)
-            raise AssertionError(f'tutorial not ready step={step} url={d.current_url}')
+            raise AssertionError(f'tutorial not settled step={step} url={d.current_url}')
 
           def open_guide(clear=True):
             d.get(BASE+'demo-guide.html')
